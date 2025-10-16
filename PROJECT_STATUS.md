@@ -320,7 +320,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 ## 📞 Contact
 
 For questions or contributions:
-- GitHub Issues: https://github.com/yourusername/ion/issues
+- GitHub Issues: https://github.com/cybergenii/ion/issues
 - Email: your.email@example.com
 
 ---

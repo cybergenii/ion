@@ -5,7 +5,7 @@ edition = "2021"
 description = "Modern C++ package manager and linter written in Rust"
 authors = ["Your Name <your.email@example.com>"]
 license = "MIT"
-repository = "https://github.com/yourusername/ion"
+repository = "https://github.com/cybergenii/ion"
 keywords = ["cpp", "package-manager", "linter", "toolchain"]
 categories = ["development-tools", "command-line-utilities"]
 

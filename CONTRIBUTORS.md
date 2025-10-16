@@ -4,7 +4,7 @@ Thank you to everyone who has contributed to Ion! 🎉
 
 ## Core Team
 
-- **Your Name** - Creator and Lead Developer - [@yourusername](https://github.com/yourusername)
+- **Derek Og'** - Creator and Lead Developer - [@cybergenii](https://github.com/cybergenii)
 
 ## Contributors
 

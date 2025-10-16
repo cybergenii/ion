@@ -316,7 +316,7 @@ ion init --help
 Want to help build Ion? Check out:
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
 - [README.md](README.md) - Full documentation
-- [GitHub Issues](https://github.com/yourusername/ion/issues) - Report bugs or request features
+- [GitHub Issues](https://github.com/cybergenii/ion/issues) - Report bugs or request features
 
 ## Learning Resources
 

@@ -5,7 +5,7 @@ Thank you for your interest in contributing to Ion! This document provides guide
 ## 🌟 Ways to Contribute
 
 ### 1. Report Bugs
-- Check if the bug has already been reported in [Issues](https://github.com/yourusername/ion/issues)
+- Check if the bug has already been reported in [Issues](https://github.com/cybergenii/ion/issues)
 - Use the bug report template
 - Include as much detail as possible (OS, Rust version, Ion version, steps to reproduce)
 - Attach relevant logs and error messages
@@ -52,7 +52,7 @@ git clone https://github.com/your-username/ion
 cd ion
 
 # Add upstream remote
-git remote add upstream https://github.com/yourusername/ion
+git remote add upstream https://github.com/cybergenii/ion
 
 # Install dependencies
 cargo build
@@ -299,7 +299,7 @@ VSCode launch.json:
 
 ## ❓ Questions?
 
-- Open a [Discussion](https://github.com/yourusername/ion/discussions)
+- Open a [Discussion](https://github.com/cybergenii/ion/discussions)
 - Join our [Discord/Slack] (coming soon)
 - Email: your.email@example.com
 

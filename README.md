@@ -2,9 +2,9 @@
 
 **A modern, fast, and user-friendly C++ package manager and linter written in Rust**
 
-[![Build Status](https://github.com/yourusername/ion/workflows/CI/badge.svg)](https://github.com/yourusername/ion/actions)
+[![Build Status](https://github.com/cybergenii/ion/workflows/CI/badge.svg)](https://github.com/cybergenii/ion/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/yourusername/ion)
+[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/cybergenii/ion)
 
 ## 🎯 Vision
 
@@ -35,7 +35,7 @@ Ion aims to bring the ease of use found in modern package managers (like Cargo, 
 
 ```bash
 # From source (requires Rust)
-git clone https://github.com/yourusername/ion
+git clone https://github.com/cybergenii/ion
 cd ion
 cargo install --path .
 
@@ -165,7 +165,7 @@ cpp-standard = "20"
 description = "A modern C++ application"
 authors = ["Your Name <your.email@example.com>"]
 license = "MIT"
-repository = "https://github.com/yourusername/my-project"
+repository = "https://github.com/cybergenii/my-project"
 
 [dependencies]
 fmt = "10.1.1"
@@ -250,7 +250,7 @@ We welcome contributions! Here's how you can help:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ion
+git clone https://github.com/cybergenii/ion
 cd ion
 
 # Build the project
@@ -358,11 +358,11 @@ Ion is licensed under the [MIT License](LICENSE).
 
 ## 📞 Contact & Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/ion/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/ion/discussions)
-- **Email**: your.email@example.com
-- **Twitter**: [@yourusername](https://twitter.com/yourusername)
+- **Issues**: [GitHub Issues](https://github.com/cybergenii/ion/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/cybergenii/ion/discussions)
+- **Email**: cybersgenii@gmail.com
+- **Twitter**: [@cybergenii](https://twitter.com/cyber_genii)
 
 ---
 
-**Built with ❤️ and Rust** | [Documentation](https://ion-cpp.dev/docs) | [Examples](https://github.com/yourusername/ion-examples) | [Contributing](CONTRIBUTING.md)
+**Built with ❤️ and Rust** | [Documentation](https://ion.cybergenii.com/docs) | [Examples](https://github.com/cybergenii/ion-examples) | [Contributing](CONTRIBUTING.md)

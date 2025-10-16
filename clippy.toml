@@ -1,0 +1,10 @@
+# Clippy configuration
+# https://rust-lang.github.io/rust-clippy/master/
+
+# Deny clippy warnings in CI
+warn-on-all-wildcard-imports = true
+
+# Allow some patterns
+too-many-arguments-threshold = 8
+type-complexity-threshold = 500
+

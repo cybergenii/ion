@@ -2,7 +2,7 @@
 
 **A modern, fast, and user-friendly C++ package manager and linter written in Rust**
 
-[![Build Status](https://github.com/cybergenii/ion/workflows/CI/badge.svg)](https://github.com/cybergenii/ion/actions)
+<!-- [![Build Status](https://github.com/cybergenii/ion/workflows/CI/badge.svg)](https://github.com/cybergenii/ion/actions) -->
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/cybergenii/ion)
 

@@ -60,3 +60,47 @@ tar = "0.4"
 
 [dev-dependencies]
 
+
+[package]
+name = "ionx"
+version = "0.1.0"
+edition = "2021"
+description = "Modern C++ package manager and linter written in Rust"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
+repository = "https://github.com/cybergenii/ion"
+keywords = ["cpp", "package-manager", "linter", "toolchain"]
+categories = ["development-tools", "command-line-utilities"]
+
+[[bin]]
+name = "ion"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive", "color", "suggestions"] }
+anyhow = "1.0"
+thiserror = "1.0"
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+colored = "2.1"
+indicatif = { version = "0.17", features = ["tokio"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "rustls-tls"] }
+sha2 = "0.10"
+walkdir = "2.4"
+chrono = { version = "0.4", features = ["serde"] }
+dirs = "5.0"
+num_cpus = "1.16"
+semver = { version = "1.0", features = ["serde"] }
+futures = "0.3"
+flate2 = "1.0"
+tar = "0.4"
+zip = "0.6"
+hex = "0.4"
+comfy-table = "7.1"
+regex = "1.10"
+tempfile = "3.8"
+async-trait = "0.1"
+
+[dev-dependencies]

@@ -3,126 +3,150 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*"
 
-env:
-  CARGO_TERM_COLOR: always
+permissions:
+  contents: write
 
 jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-    steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-  build-release:
-    name: Build Release
-    needs: create-release
+  build:
+    name: Build · ${{ matrix.artifact }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact_name: ion
-            asset_name: ion-linux-amd64
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact_name: ion
-            asset_name: ion-linux-arm64
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: ion
-            asset_name: ion-macos-amd64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: ion
-            asset_name: ion-macos-arm64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: ion.exe
-            asset_name: ion-windows-amd64.exe
+          # ── Linux (static musl) ──────────────────────────────────────────
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            artifact: ion-linux-x86_64
+            use_cross: true
+
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            artifact: ion-linux-aarch64
+            use_cross: true
+
+          - target: armv7-unknown-linux-musleabihf
+            os: ubuntu-latest
+            artifact: ion-linux-armv7
+            use_cross: true
+
+          # ── macOS ────────────────────────────────────────────────────────
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            artifact: ion-macos-x86_64
+            use_cross: false
+
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            artifact: ion-macos-aarch64
+            use_cross: false
+
+          # ── Windows ──────────────────────────────────────────────────────
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            artifact: ion-windows-x86_64.exe
+            use_cross: false
+
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            artifact: ion-windows-aarch64.exe
+            use_cross: false
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Rust
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cross-compilation tools (Linux ARM64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-
 
-      - name: Build release binary
+      - name: Install cross
+        if: matrix.use_cross == true
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build (cross — Linux musl)
+        if: matrix.use_cross == true
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Build (native — macOS / Windows)
+        if: matrix.use_cross == false
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Strip binary (Unix)
-        if: runner.os != 'Windows'
-        run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-
-      - name: Create archive (Unix)
+      # ── Rename + package ────────────────────────────────────────────────
+      - name: Package binary (Unix)
         if: runner.os != 'Windows'
         run: |
-          cd target/${{ matrix.target }}/release
-          tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
-          mv ${{ matrix.asset_name }}.tar.gz ${{ github.workspace }}/
+          cp target/${{ matrix.target }}/release/ion ${{ matrix.artifact }}
+          tar czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}
 
-      - name: Create archive (Windows)
+      - name: Package binary (Windows)
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          cd target/${{ matrix.target }}/release
-          7z a ${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }}
-          mv ${{ matrix.asset_name }}.zip ${{ github.workspace }}/
+          Copy-Item "target/${{ matrix.target }}/release/ion.exe" "${{ matrix.artifact }}"
+          Compress-Archive -Path "${{ matrix.artifact }}" -DestinationPath "${{ matrix.artifact }}.zip"
 
-      - name: Upload Release Asset (Unix)
+      # ── Upload ──────────────────────────────────────────────────────────
+      - name: Upload artifact (Unix)
         if: runner.os != 'Windows'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./${{ matrix.asset_name }}.tar.gz
-          asset_name: ${{ matrix.asset_name }}.tar.gz
-          asset_content_type: application/gzip
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.tar.gz
 
-      - name: Upload Release Asset (Windows)
+      - name: Upload artifact (Windows)
         if: runner.os == 'Windows'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./${{ matrix.asset_name }}.zip
-          asset_name: ${{ matrix.asset_name }}.zip
-          asset_content_type: application/zip
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
 
-  publish-crates:
-    name: Publish to crates.io
-    needs: build-release
+  # ── Create GitHub Release with all binaries ────────────────────────────
+  release:
+    name: Publish Release
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
 
-      - name: Publish to crates.io
-        run: cargo publish --token ${{ secrets.CARGO_TOKEN }}
+      - name: List artifacts
+        run: ls -lh artifacts/
 
+      - name: Create checksums
+        run: |
+          cd artifacts
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.tar.gz
+            artifacts/*.zip
+            artifacts/checksums.txt
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

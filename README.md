@@ -49,6 +49,11 @@ curl -fsSL https://ion.cybergenii.com/install.sh | sh
 # Optional installer overrides
 # ION_INSTALL_DIR="$HOME/.local/bin" ION_VERSION="0.3.0" ION_NO_MODIFY_PATH=1 \
 #   curl -fsSL https://ion.cybergenii.com/install.sh | sh
+#
+# Dependency bootstrap controls (default installs missing deps):
+# ION_INSTALL_DEPS=1   # default, auto-install missing cmake/compiler/make+ninja/libclang
+# ION_INSTALL_DEPS=0   # do not auto-install dependencies
+# ION_SKIP_DEPS=1      # skip dependency checks entirely
 
 # Or use cargo directly
 cargo install ion

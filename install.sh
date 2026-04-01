@@ -12,6 +12,8 @@ PRINT_QUIET="${ION_PRINT_QUIET:-0}"
 PRINT_VERBOSE="${ION_PRINT_VERBOSE:-0}"
 DOWNLOAD_URL_OVERRIDE="${ION_DOWNLOAD_URL:-}"
 VERSION_OVERRIDE="${ION_VERSION:-}"
+INSTALL_DEPS="${ION_INSTALL_DEPS:-1}"
+SKIP_DEPS="${ION_SKIP_DEPS:-0}"
 
 say() {
   if [ "$PRINT_QUIET" != "1" ]; then
@@ -32,6 +34,20 @@ err() {
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || err "need '$1' (command not found)"
+}
+
+has_cmd() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+run_as_root() {
+  if [ "$(id -u)" -eq 0 ]; then
+    "$@"
+  elif has_cmd sudo; then
+    sudo "$@"
+  else
+    err "need root privileges to install system dependencies (install sudo or run as root)"
+  fi
 }
 
 downloader() {
@@ -62,6 +78,104 @@ detect_arch() {
     armv7*) echo "armv7" ;;
     *) err "unsupported architecture: $arch" ;;
   esac
+}
+
+detect_pkg_manager() {
+  if has_cmd apt-get; then echo "apt"
+  elif has_cmd dnf; then echo "dnf"
+  elif has_cmd yum; then echo "yum"
+  elif has_cmd pacman; then echo "pacman"
+  elif has_cmd zypper; then echo "zypper"
+  elif has_cmd apk; then echo "apk"
+  elif has_cmd brew; then echo "brew"
+  else echo ""
+  fi
+}
+
+install_deps_linux_or_macos() {
+  pm="$(detect_pkg_manager)"
+  [ -n "$pm" ] || {
+    say "WARN: Could not detect package manager; install dependencies manually:"
+    say "  cmake, clang or g++, make or ninja, libclang"
+    return 0
+  }
+
+  say "-> Installing missing dependencies via package manager: $pm"
+  case "$pm" in
+    apt)
+      run_as_root apt-get update
+      run_as_root apt-get install -y cmake clang g++ make ninja-build libclang-dev
+      ;;
+    dnf)
+      run_as_root dnf install -y cmake clang gcc-c++ make ninja-build clang-devel
+      ;;
+    yum)
+      run_as_root yum install -y cmake clang gcc-c++ make ninja-build clang-devel
+      ;;
+    pacman)
+      run_as_root pacman -Sy --noconfirm cmake clang gcc make ninja libclang
+      ;;
+    zypper)
+      run_as_root zypper --non-interactive install cmake clang gcc-c++ make ninja libclang-devel
+      ;;
+    apk)
+      run_as_root apk add --no-cache cmake clang g++ make ninja clang-dev
+      ;;
+    brew)
+      brew install cmake llvm ninja
+      ;;
+  esac
+}
+
+check_and_install_build_deps() {
+  [ "$SKIP_DEPS" = "1" ] && {
+    say "-> Skipping dependency checks (ION_SKIP_DEPS=1)"
+    return 0
+  }
+  [ "$INSTALL_DEPS" = "0" ] && {
+    say "-> Dependency auto-install disabled (ION_INSTALL_DEPS=0)"
+    return 0
+  }
+
+  missing=0
+  if ! has_cmd cmake; then
+    say "-> Missing: cmake"
+    missing=1
+  fi
+  if ! has_cmd clang++ && ! has_cmd g++; then
+    say "-> Missing: clang++ or g++"
+    missing=1
+  fi
+  if ! has_cmd make && ! has_cmd ninja; then
+    say "-> Missing: make or ninja"
+    missing=1
+  fi
+  if ! has_cmd clang && ! has_cmd llvm-config; then
+    say "-> Missing: clang/libclang tooling (recommended for semantic linting)"
+    missing=1
+  fi
+
+  if [ "$missing" -eq 0 ]; then
+    say "-> Build/lint dependencies look good"
+    return 0
+  fi
+
+  OS="$(detect_os)"
+  case "$OS" in
+    linux|macos)
+      install_deps_linux_or_macos
+      ;;
+    windows)
+      say "WARN: Auto-installing C++ dependencies is not yet implemented for this shell on Windows."
+      say "      Please install: CMake, MSVC/Clang toolchain, and LLVM/libclang."
+      ;;
+  esac
+
+  # Post-check summary
+  if ! has_cmd cmake || { ! has_cmd clang++ && ! has_cmd g++; } || { ! has_cmd make && ! has_cmd ninja; }; then
+    say "WARN: Some required dependencies are still missing."
+    say "      Ion can install/run, but build/lint features may be limited."
+  fi
 }
 
 get_latest_tag() {
@@ -114,6 +228,8 @@ main() {
   need_cmd mkdir
   need_cmd mv
   need_cmd tar
+
+  check_and_install_build_deps
 
   OS="$(detect_os)"
   ARCH="$(detect_arch)"

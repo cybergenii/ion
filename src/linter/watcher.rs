@@ -1,7 +1,7 @@
 use crate::linter::Linter;
 use anyhow::Result;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 use std::time::SystemTime;
 
@@ -12,17 +12,20 @@ pub fn watch_src(linter: &Linter) -> Result<()> {
     println!("[ion] Watching src/ for changes — Ctrl+C to stop");
     loop {
         let event = rx.recv()?;
-        if matches!(event.kind, EventKind::Modify(_)) {
-            for p in event.paths {
-                if is_cpp_file(&p) {
-                    print!("\x1B[2J\x1B[H");
-                    println!("[ion] {}", humantime(SystemTime::now()));
-                    let diagnostics = linter.run_on_files(&[p], None)?;
-                    crate::linter::reporter::report(
-                        &diagnostics,
-                        crate::linter::reporter::OutputFormat::Text,
-                        true,
-                    )?;
+        if let Ok(event) = event {
+            if matches!(event.kind, EventKind::Modify(_)) {
+                for p in event.paths {
+                    if is_cpp_file(&p) {
+                        print!("\x1B[2J\x1B[H");
+                        println!("[ion] {}", humantime(SystemTime::now()));
+                        let single: PathBuf = p;
+                        let diagnostics = linter.run_on_files(&[single], None)?;
+                        crate::linter::reporter::report(
+                            &diagnostics,
+                            crate::linter::reporter::OutputFormat::Text,
+                            true,
+                        )?;
+                    }
                 }
             }
         }

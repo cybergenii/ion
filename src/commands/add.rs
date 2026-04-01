@@ -1,13 +1,9 @@
 use anyhow::{Context, Result};
 use colored::*;
 use std::env;
-use std::path::Path;
 
 use crate::config::Config;
-use crate::lockfile::Lockfile;
 use crate::manifest::{Dependency, DetailedDependency, Manifest};
-use crate::registry::{DependencySpec, GitRev, RegistryManager};
-use crate::resolver;
 
 /// ion add <spec> [--dev]
 ///
@@ -32,7 +28,7 @@ pub async fn execute(spec: &str, is_dev: bool) -> Result<()> {
     }
 
     let mut manifest = Manifest::from_dir(&cwd).context("Failed to load ion.toml")?;
-    let config = Config::load().unwrap_or_default();
+    let _config = Config::load().unwrap_or_default();
 
     // Parse the spec
     let (name, dep) = parse_add_spec(spec)?;
@@ -78,7 +74,7 @@ fn parse_add_spec(spec: &str) -> Result<(String, Dependency)> {
     if let Some(rest) = spec.strip_prefix("github:") {
         // "github:fmtlib/fmt" or "github:fmtlib/fmt@10.2.1"
         let (repo, version) = split_at_version(rest);
-        let name = repo.split('/').last().unwrap_or(repo).to_string();
+        let name = repo.split('/').next_back().unwrap_or(repo).to_string();
         return Ok((name, Dependency::Detailed(DetailedDependency {
             git: Some(format!("https://github.com/{}", repo)),
             tag: if version.is_empty() { None } else { Some(ensure_v_prefix(version)) },
@@ -107,7 +103,7 @@ fn parse_add_spec(spec: &str) -> Result<(String, Dependency)> {
     if let Some(rest) = spec.strip_prefix("git:") {
         // "git:https://gitlab.com/org/repo@branch-or-tag"
         let (url, rev) = split_at_version(rest);
-        let name = url.split('/').last().unwrap_or(url)
+        let name = url.split('/').next_back().unwrap_or(url)
             .trim_end_matches(".git")
             .to_string();
         return Ok((name, Dependency::Detailed(DetailedDependency {

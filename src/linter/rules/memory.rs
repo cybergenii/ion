@@ -1,7 +1,6 @@
 use crate::linter::diagnostic::{Diagnostic, Severity};
 use crate::linter::rules::Rule;
 use clang::{Entity, EntityKind};
-use std::path::PathBuf;
 
 pub struct MemoryLeakRule;
 pub struct DoubleFreeRule;
@@ -12,10 +11,11 @@ pub fn detect_memory_leak_line(line: &str) -> bool {
 
 pub fn detect_double_free(source: &str, var: &str) -> bool {
     let mut count = 0usize;
+    let free_pat = format!("free({var})");
+    let del_pat = format!("delete {var}");
     for line in source.lines() {
-        if line.contains(&format!("free({var})")) || line.contains(&format!("delete {var}")) {
-            count += 1;
-        }
+        count += line.matches(&free_pat).count();
+        count += line.matches(&del_pat).count();
     }
     count > 1
 }
@@ -47,7 +47,7 @@ impl Rule for MemoryLeakRule {
             rule: "memory/leak",
             severity: Severity::Warning,
             message: format!("Raw allocation via `{display}`"),
-            file: PathBuf::from(file.get_path()),
+            file: file.get_path(),
             line: loc.get_file_location().line,
             column: loc.get_file_location().column,
             span: None,
@@ -99,7 +99,7 @@ impl Rule for DoubleFreeRule {
             rule: "memory/double-free",
             severity: Severity::Error,
             message: format!("Potential repeated deallocation via `{display}`"),
-            file: PathBuf::from(file.get_path()),
+            file: file.get_path(),
             line: loc.get_file_location().line,
             column: loc.get_file_location().column,
             span: None,

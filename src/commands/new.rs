@@ -6,7 +6,7 @@ use std::path::Path;
 use crate::manifest::Manifest;
 
 pub fn execute(name: &str, cpp_standard: &str, template: &str) -> Result<()> {
-    println!("{} {} `{}`...", "Creating".green().bold(), "new project", name.cyan());
+    println!("{} new project `{}`...", "Creating".green().bold(), name.cyan());
     
     // Validate project name
     if !is_valid_project_name(name) {
@@ -116,7 +116,7 @@ endif()
 "#, name = name, cpp_standard = cpp_standard, template = template, project_type = project_type)
 }
 
-fn create_executable_template(base_path: &Path, name: &str) -> Result<()> {
+fn create_executable_template(base_path: &Path, _name: &str) -> Result<()> {
     let main_cpp = r#"#include <iostream>
 #include <string>
 
@@ -136,21 +136,22 @@ int main(int argc, char* argv[]) {
     
     fs::write(base_path.join("src/main.cpp"), main_cpp)?;
     
-    let test_cpp = format!(r#"#include <cassert>
+    let test_cpp = r#"#include <cassert>
 #include <iostream>
 
 // Simple test example
-void test_basic() {{
+void test_basic() {
     assert(1 + 1 == 2);
     std::cout << "✓ Basic test passed" << std::endl;
-}}
+}
 
-int main() {{
+int main() {
     test_basic();
     std::cout << "All tests passed!" << std::endl;
     return 0;
-}}
-"#);
+}
+"#
+    .to_string();
     
     fs::write(base_path.join("tests/test_main.cpp"), test_cpp)?;
     

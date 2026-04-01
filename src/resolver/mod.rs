@@ -6,8 +6,8 @@ use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::collections::HashMap;
 
-use crate::lockfile::{hash_manifest, Lockfile, LockedPackage};
-use crate::manifest::{Dependency, DetailedDependency, Manifest};
+use crate::lockfile::{hash_manifest, Lockfile};
+use crate::manifest::{Dependency, Manifest};
 use crate::registry::{DependencySpec, GitRev, PackageInfo, RegistryManager};
 
 use self::graph::{DependencyGraph, ResolvedNode};
@@ -132,7 +132,7 @@ pub async fn resolve(
 
     // Build and sort the dependency graph
     let mut graph = DependencyGraph::new();
-    for (_, info) in &resolved_map {
+    for info in resolved_map.values() {
         let deps: Vec<String> = info.dependencies.iter().map(|d| d.name.clone()).collect();
         graph.add_node(info.name.clone(), info.version.clone(), deps);
     }

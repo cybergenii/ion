@@ -124,7 +124,7 @@ impl Registry for GitRegistry {
         Ok(vec![])
     }
 
-    async fn resolve(&self, name: &str, version_req: &str) -> Result<PackageInfo> {
+    async fn resolve(&self, _name: &str, _version_req: &str) -> Result<PackageInfo> {
         // For arbitrary git, `name` IS the URL (stored in spec)
         anyhow::bail!(
             "Git registry requires full spec. Use: {{ git = \"<url>\", tag = \"<version>\" }}"
@@ -192,7 +192,7 @@ pub async fn resolve_git_spec(
         .current_dir(&repo_dir)
         .output()
         .context("Failed to resolve git ref")?;
-    let commit = String::from_utf8_lossy(&commit_output.stdout).trim().to_string();
+    let _commit = String::from_utf8_lossy(&commit_output.stdout).trim().to_string();
 
     Ok(PackageInfo {
         name: name.to_string(),

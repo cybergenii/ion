@@ -173,7 +173,7 @@ impl Registry for VcpkgRegistry {
         // The portfile specifies the upstream source tarball.
         // We fetch the portfile to get the archive URL, then download it.
 
-        let first_char = info.name.chars().next().unwrap_or('a').to_lowercase().next().unwrap();
+        let _first_char = info.name.chars().next().unwrap_or('a').to_lowercase().next().unwrap();
         let portfile_url = format!(
             "https://raw.githubusercontent.com/microsoft/vcpkg/master/ports/{}/portfile.cmake",
             info.name

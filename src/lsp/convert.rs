@@ -1,5 +1,5 @@
 use crate::linter::diagnostic::{Diagnostic, Fix, Severity};
-use lsp_types::{
+use tower_lsp::lsp_types::{
     Diagnostic as LspDiagnostic, DiagnosticSeverity, Position, Range, TextEdit, Url, WorkspaceEdit,
 };
 use std::collections::HashMap;

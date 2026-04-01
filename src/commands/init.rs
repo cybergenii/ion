@@ -6,7 +6,7 @@ use std::path::Path;
 use crate::manifest::Manifest;
 
 pub fn execute(cpp_standard: &str) -> Result<()> {
-    println!("{} {} in current directory...", "Initializing".green().bold(), "Ion project");
+    println!("{} Ion project in current directory...", "Initializing".green().bold());
     
     let current_dir = std::env::current_dir().context("Failed to get current directory")?;
     let project_name = current_dir

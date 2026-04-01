@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
 
-use super::{DownloadResult, DependencySpec, GitRev, PackageCache, PackageDependency, PackageInfo, Registry};
+use super::{DownloadResult, DependencySpec, PackageCache, PackageInfo, Registry};
 
 /// GitHub Releases registry adapter.
 /// Resolves packages from GitHub repos using the Releases API.
@@ -139,7 +139,7 @@ impl Registry for GitHubRegistry {
 
         let result: SearchResult = resp.json().await.unwrap_or(SearchResult { items: vec![] });
         Ok(result.items.into_iter().map(|r| {
-            let (owner, repo) = r.full_name.split_once('/').unwrap_or(("", &r.full_name));
+            let (_owner, _repo) = r.full_name.split_once('/').unwrap_or(("", &r.full_name));
             PackageInfo {
                 name: r.name.clone(),
                 version: "latest".to_string(),
@@ -222,7 +222,7 @@ impl Registry for GitHubRegistry {
 
         // Prefer tarball over zipball
         let download_url = release.tarball_url.as_deref()
-            .or_else(|| release.zipball_url.as_deref())
+            .or(release.zipball_url.as_deref())
             .ok_or_else(|| anyhow::anyhow!("No download URL for release {}", info.version))?;
 
         let resp = self.client.get(download_url).send().await

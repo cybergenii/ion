@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::collections::{HashMap, HashSet, VecDeque};
 
 /// A node in the dependency graph after resolution

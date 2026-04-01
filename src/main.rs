@@ -1,3 +1,7 @@
+//! Ion CLI binary — many modules expose helpers for tests and future commands; keep `-D warnings` builds clean.
+#![allow(dead_code)]
+#![allow(clippy::large_enum_variant)]
+
 use clap::{Parser, Subcommand};
 use colored::*;
 use anyhow::Result;
@@ -210,14 +214,14 @@ async fn main() -> Result<()> {
                 "Ion — Modern C++ Package Manager".bright_cyan().bold()
             );
             println!();
-            println!("  {}  {}", "ion new <name>".green(), "Create a new project");
-            println!("  {}  {}", "ion add <pkg>".green(), "Add a dependency");
-            println!("  {}  {}", "ion install".green(), "Install all dependencies");
-            println!("  {}  {}", "ion build".green(), "Build the project");
-            println!("  {}  {}", "ion run".green(), "Build and run");
-            println!("  {}  {}", "ion check".green(), "Run C++ linting checks");
-            println!("  {}  {}", "ion tree".green(), "Show dependency tree");
-            println!("  {}  {}", "ion outdated".green(), "Check for updates");
+            println!("  {}  Create a new project", "ion new <name>".green());
+            println!("  {}  Add a dependency", "ion add <pkg>".green());
+            println!("  {}  Install all dependencies", "ion install".green());
+            println!("  {}  Build the project", "ion build".green());
+            println!("  {}  Build and run", "ion run".green());
+            println!("  {}  Run C++ linting checks", "ion check".green());
+            println!("  {}  Show dependency tree", "ion tree".green());
+            println!("  {}  Check for updates", "ion outdated".green());
             println!();
             println!("Run {} for all commands", "ion --help".cyan());
         }

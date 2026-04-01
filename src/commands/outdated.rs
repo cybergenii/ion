@@ -5,7 +5,6 @@ use std::env;
 
 use crate::config::Config;
 use crate::lockfile::Lockfile;
-use crate::manifest::Manifest;
 use crate::registry::RegistryManager;
 
 /// ion outdated — show which packages have newer versions available

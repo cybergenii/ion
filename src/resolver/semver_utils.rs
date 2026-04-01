@@ -1,7 +1,6 @@
 /// Semver utility helpers.
 /// While we primarily use the `semver` crate, this module
 /// provides Ion-specific utilities and user-friendly error messages.
-
 /// Determine if a version string satisfies a requirement string.
 pub fn satisfies(version: &str, req: &str) -> bool {
     let Ok(v) = semver::Version::parse(version) else {

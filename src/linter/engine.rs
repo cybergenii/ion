@@ -26,7 +26,7 @@ impl LintEngine {
         if !self.enabled {
             return Ok(Vec::new());
         }
-        let clang = Clang::new()?;
+        let clang = Clang::new().map_err(|e| anyhow::anyhow!(e))?;
         let index = Index::new(&clang, false, false);
         let tu = index
             .parser(file)

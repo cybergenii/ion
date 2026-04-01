@@ -199,7 +199,7 @@ set({canonical}_FOUND TRUE PARENT_SCOPE CACHE BOOL "" FORCE)
 }
 
 fn generate_header_only_target(pkg: &LockedPackage, include_dirs: &str) -> String {
-    let canonical = cmake_canonical_name(&pkg.name);
+    let _canonical = cmake_canonical_name(&pkg.name);
     let target = if pkg.cmake_targets.is_empty() {
         format!("{}::{}", pkg.name, pkg.name)
     } else {
@@ -227,7 +227,7 @@ fn generate_library_targets(
     include_dirs: &str,
 ) -> String {
     let mut parts = Vec::new();
-    let canonical = cmake_canonical_name(&pkg.name);
+    let _canonical = cmake_canonical_name(&pkg.name);
 
     for (i, lib_path) in download.lib_files.iter().enumerate() {
         let target = if i < pkg.cmake_targets.len() {

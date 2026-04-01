@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub registry: RegistryConfig,
@@ -97,7 +97,7 @@ impl Default for CacheConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct BuildConfig {
     /// 0 = use all CPU cores
     #[serde(default)]
@@ -112,17 +112,6 @@ pub struct BuildConfig {
     pub cmake_flags: Vec<String>,
 }
 
-impl Default for BuildConfig {
-    fn default() -> Self {
-        Self {
-            parallel_jobs: 0,
-            ccache: false,
-            compiler: None,
-            cmake_flags: vec![],
-        }
-    }
-}
-
 fn default_registry() -> String { "ion".to_string() }
 fn default_registry_url() -> String { "https://registry.ion-cpp.dev".to_string() }
 fn default_conan_url() -> String { "https://conan.io/center".to_string() }
@@ -133,16 +122,6 @@ fn default_cache_dir() -> PathBuf {
     dirs::cache_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("ion")
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            registry: RegistryConfig::default(),
-            cache: CacheConfig::default(),
-            build: BuildConfig::default(),
-        }
-    }
 }
 
 impl Config {

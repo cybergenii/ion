@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
 
-use super::{DownloadResult, DependencySpec, PackageCache, PackageDependency, PackageInfo, Registry};
+use super::{DownloadResult, DependencySpec, PackageCache, PackageInfo, Registry};
 
 /// ConanCenter registry adapter.
 /// Resolves C++ packages from https://conan.io/center using the v2 REST API.

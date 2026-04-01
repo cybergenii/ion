@@ -1,7 +1,6 @@
 use crate::linter::diagnostic::{Diagnostic, Severity};
 use crate::linter::rules::Rule;
 use clang::{Entity, EntityKind};
-use std::path::PathBuf;
 
 pub struct ResourceLeakRule;
 
@@ -32,7 +31,7 @@ impl Rule for ResourceLeakRule {
             rule: "resource/leak",
             severity: Severity::Warning,
             message: format!("Resource acquisition via `{display}` may leak"),
-            file: PathBuf::from(file.get_path()),
+            file: file.get_path(),
             line: loc.get_file_location().line,
             column: loc.get_file_location().column,
             span: None,

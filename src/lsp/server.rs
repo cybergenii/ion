@@ -1,7 +1,7 @@
 use crate::linter::diagnostic::Diagnostic;
 use crate::linter::Linter;
 use crate::lsp::convert::{to_lsp_diagnostic, to_workspace_edit};
-use lsp_types::{
+use tower_lsp::lsp_types::{
     CodeActionOrCommand, CodeActionParams, CodeActionResponse, DiagnosticOptions,
     DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
     Hover, HoverContents, HoverParams, InitializeParams, InitializeResult, MessageType,
@@ -46,21 +46,21 @@ impl LanguageServer for IonLspServer {
                     TextDocumentSyncKind::INCREMENTAL,
                 )),
                 diagnostic_provider: Some(
-                    lsp_types::DiagnosticServerCapabilities::Options(DiagnosticOptions {
+                    tower_lsp::lsp_types::DiagnosticServerCapabilities::Options(DiagnosticOptions {
                         identifier: Some("ion".to_string()),
                         inter_file_dependencies: false,
                         workspace_diagnostics: false,
                         work_done_progress_options: Default::default(),
                     }),
                 ),
-                code_action_provider: Some(lsp_types::CodeActionProviderCapability::Simple(true)),
-                hover_provider: Some(lsp_types::HoverProviderCapability::Simple(true)),
+                code_action_provider: Some(tower_lsp::lsp_types::CodeActionProviderCapability::Simple(true)),
+                hover_provider: Some(tower_lsp::lsp_types::HoverProviderCapability::Simple(true)),
                 ..Default::default()
             },
         })
     }
 
-    async fn initialized(&self, _: lsp_types::InitializedParams) {
+    async fn initialized(&self, _: tower_lsp::lsp_types::InitializedParams) {
         self.client
             .log_message(MessageType::INFO, "Ion LSP initialized")
             .await;
@@ -103,9 +103,9 @@ impl LanguageServer for IonLspServer {
                 for d in diags {
                     if let Some(fix) = &d.fix {
                         let edit = to_workspace_edit(fix, &uri);
-                        let action = lsp_types::CodeAction {
+                        let action = tower_lsp::lsp_types::CodeAction {
                             title: format!("Apply ion fix: {}", d.rule),
-                            kind: Some(lsp_types::CodeActionKind::QUICKFIX),
+                            kind: Some(tower_lsp::lsp_types::CodeActionKind::QUICKFIX),
                             diagnostics: None,
                             edit: Some(edit),
                             command: None,
@@ -138,7 +138,7 @@ impl LanguageServer for IonLspServer {
                         && pos.character <= end.saturating_sub(1)
                     {
                         return Ok(Some(Hover {
-                            contents: HoverContents::Scalar(lsp_types::MarkedString::String(
+                            contents: HoverContents::Scalar(tower_lsp::lsp_types::MarkedString::String(
                                 format!(
                                     "{}\n{}\nhttps://github.com/cybergenii/ion",
                                     d.rule, d.message

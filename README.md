@@ -247,7 +247,8 @@ ccache = true
 - [x] Text/JSON/SARIF reporting
 - [x] Semantic context for AST rules (enclosing function, full-file source for cross-checks)
 - [x] Tuned heuristics (double-free gating, nullptr/resource filters)
-- [ ] Deeper path-sensitive / interprocedural analysis
+- [x] Function-scoped textual dataflow for `memory/leak` and `memory/use-after-free` (assignment clears freed state)
+- [ ] Full path-sensitive / interprocedural analysis (CFG-backed, cross-function summaries)
 
 ### Phase 4: Advanced Features 🚧 (In Progress)
 - [x] Initial LSP server plumbing (`ion lsp`)

@@ -11,7 +11,7 @@
   - `--list-rules`
   - `--no-color`
 - Semantic analysis context (`SemanticContext`) for libclang rules: enclosing function name, full file source for cross-checks.
-- Textual analysis always runs (even without libclang): tree-sitter modern checks, dataflow, smart-pointer heuristics.
+- Textual analysis always runs (even without libclang): tree-sitter modern checks, **function-scoped** dataflow (leak / use-after-free with reassignment clearing), smart-pointer heuristics.
 - Smart-pointer / ownership heuristics (`src/analysis/smart_ptr.rs`): `memory/smart-get`, `memory/raw-from-smart`, `memory/move-after-use`, `memory/shared-cycle-hint`.
 - Refined semantic rules: double-free only when duplicate free/delete matches the same variable in-file; `null/deref` skips `*this`; resource leak skips `std::`/`filesystem::` call patterns; memory leak skips `make_unique`/`make_shared`.
 - Auto-fix: `modern/c-cast` suggests `static_cast` with machine-applicable `Fix::Replace` when a simple `(Type)expr` is detected.

@@ -22,6 +22,7 @@
   - Diagnostics include `code` and `code_description`; notes map to `related_information` when a file URL resolves
   - Quick-fix code actions filtered by request range and linked to diagnostics
   - Hover for diagnostic spans
+  - Go-to-definition (`textDocument/definition`): resolves symbol at cursor via libclang (`get_reference` → `get_definition`), same compile args as `ion check`
 
 ## Runtime behavior with and without libclang
 
@@ -29,6 +30,7 @@
   - semantic checks run via `src/linter/engine.rs` (with unsaved buffers when used from LSP)
 - If `libclang` is not available:
   - tree-sitter + dataflow + smart-pointer heuristics still run
+  - LSP go-to-definition is unavailable (returns no result)
   - Ion prints:
     - `[ion] warning: libclang not found — semantic checks disabled`
 

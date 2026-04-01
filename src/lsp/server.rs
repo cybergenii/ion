@@ -5,8 +5,9 @@ use crate::lsp::convert::{ranges_overlap, to_lsp_diagnostic, to_lsp_range, to_wo
 use tower_lsp::lsp_types::{
     CodeActionOrCommand, CodeActionParams, CodeActionResponse, DiagnosticOptions,
     DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
-    DidSaveTextDocumentParams, Hover, HoverContents, HoverParams, InitializeParams, InitializeResult,
-    MessageType, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, Url,
+    DidSaveTextDocumentParams, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverContents,
+    HoverParams, InitializeParams, InitializeResult, MessageType, OneOf, ServerCapabilities,
+    TextDocumentSyncCapability, TextDocumentSyncKind, Url,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -73,6 +74,7 @@ impl LanguageServer for IonLspServer {
                 ),
                 code_action_provider: Some(tower_lsp::lsp_types::CodeActionProviderCapability::Simple(true)),
                 hover_provider: Some(tower_lsp::lsp_types::HoverProviderCapability::Simple(true)),
+                definition_provider: Some(OneOf::Left(true)),
                 ..Default::default()
             },
         })
@@ -170,6 +172,32 @@ impl LanguageServer for IonLspServer {
             }
         }
         Ok(Some(actions))
+    }
+
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let pos = params.text_document_position_params.position;
+        let path = match uri.to_file_path() {
+            Ok(p) => p,
+            Err(_) => return Ok(None),
+        };
+        if !self.linter.semantic_available() {
+            return Ok(None);
+        }
+        let source = self
+            .documents
+            .lock()
+            .ok()
+            .and_then(|m| m.get(&uri).cloned())
+            .or_else(|| std::fs::read_to_string(&path).ok());
+        let Some(source) = source else {
+            return Ok(None);
+        };
+        let loc = crate::lsp::navigation::goto_definition(&path, &source, pos.line, pos.character);
+        Ok(loc.map(GotoDefinitionResponse::Scalar))
     }
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {

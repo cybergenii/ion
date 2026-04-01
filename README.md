@@ -256,7 +256,7 @@ ccache = true
 - [x] Smart-pointer heuristics (`memory/smart-get`, `memory/raw-from-smart`, `memory/move-after-use`, `memory/shared-cycle-hint`)
 - [x] Expanded auto-fix (`modern/c-cast` → `static_cast` when safe)
 - [x] Editor UX: full sync, unsaved buffers, diagnostic `code`, range-filtered code actions
-- [ ] Symbol-aware navigation (go-to-def, etc.)
+- [x] Go-to-definition (`textDocument/definition`, libclang when available)
 
 ### Phase 5: Production (Months 13-18)
 - [ ] Public beta

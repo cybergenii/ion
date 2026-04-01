@@ -121,7 +121,7 @@ struct CompileCommand {
     command: Option<String>,
 }
 
-fn compile_args_for(file: &Path) -> Vec<String> {
+pub(crate) fn compile_args_for(file: &Path) -> Vec<String> {
     let cc_path = Path::new("compile_commands.json");
     if !cc_path.exists() {
         return Vec::new();

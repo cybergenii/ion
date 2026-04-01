@@ -54,10 +54,10 @@ impl Linter {
             .collect()
     }
 
-    pub fn run_on_files(&self, files: &[PathBuf], filter_rule: Option<&str>) -> Result<Vec<Diagnostic>> {
+    pub fn run_on_files(&self, files: &[PathBuf], filter_rules: Option<&[String]>) -> Result<Vec<Diagnostic>> {
         let diagnostics = files
             .par_iter()
-            .map(|file| self.analyze_one(file, filter_rule))
+            .map(|file| self.analyze_one(file, filter_rules))
             .collect::<Vec<_>>()
             .into_iter()
             .filter_map(Result::ok)
@@ -66,10 +66,10 @@ impl Linter {
         Ok(diagnostics)
     }
 
-    pub fn run(&self, filter_rule: Option<&str>) -> Result<(Vec<Diagnostic>, LintSummary)> {
+    pub fn run(&self, filter_rules: Option<&[String]>) -> Result<(Vec<Diagnostic>, LintSummary)> {
         let start = Instant::now();
         let files = Self::discover_source_files(Path::new("src"));
-        let diagnostics = self.run_on_files(&files, filter_rule)?;
+        let diagnostics = self.run_on_files(&files, filter_rules)?;
         let errors = diagnostics
             .iter()
             .filter(|d| d.severity == Severity::Error)
@@ -90,15 +90,15 @@ impl Linter {
         ))
     }
 
-    fn analyze_one(&self, file: &Path, filter_rule: Option<&str>) -> Result<Vec<Diagnostic>> {
+    fn analyze_one(&self, file: &Path, filter_rules: Option<&[String]>) -> Result<Vec<Diagnostic>> {
         let mut out = tree::run_tree_sitter_checks(file)?;
         if self.engine.semantic_available() {
-            out.extend(self.engine.analyze_file(file, filter_rule)?);
+            out.extend(self.engine.analyze_file(file, filter_rules)?);
             let source = fs::read_to_string(file)?;
             out.extend(dataflow::quick_dataflow_checks(file, &source));
         }
-        if let Some(rule) = filter_rule {
-            out.retain(|d| d.rule == rule);
+        if let Some(ids) = filter_rules {
+            out.retain(|d| ids.iter().any(|r| r.as_str() == d.rule));
         }
         Ok(out)
     }

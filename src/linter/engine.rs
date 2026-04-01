@@ -2,6 +2,8 @@ use crate::linter::diagnostic::Diagnostic;
 use crate::linter::rules::RuleSet;
 use anyhow::Result;
 use clang::{Clang, Entity, Index};
+use serde::Deserialize;
+use std::fs;
 use std::path::Path;
 
 pub struct LintEngine {
@@ -22,19 +24,24 @@ impl LintEngine {
         self.enabled
     }
 
-    pub fn analyze_file(&self, file: &Path, filter_rule: Option<&str>) -> Result<Vec<Diagnostic>> {
+    pub fn analyze_file(&self, file: &Path, filter_rules: Option<&[String]>) -> Result<Vec<Diagnostic>> {
         if !self.enabled {
             return Ok(Vec::new());
         }
         let clang = Clang::new().map_err(|e| anyhow::anyhow!(e))?;
         let index = Index::new(&clang, false, false);
-        let tu = index
-            .parser(file)
-            .arguments(&["-x", "c++", "-std=c++20"])
-            .parse()?;
+        let mut parser = index.parser(file);
+        let args = compile_args_for(file);
+        if args.is_empty() {
+            parser.arguments(&["-x", "c++", "-std=c++20"]);
+        } else {
+            let refs = args.iter().map(String::as_str).collect::<Vec<_>>();
+            parser.arguments(&refs);
+        }
+        let tu = parser.parse()?;
         let root = tu.get_entity();
         let mut diagnostics = Vec::new();
-        self.walk(&root, &root, &mut diagnostics, filter_rule);
+        self.walk(&root, &root, &mut diagnostics, filter_rules);
         Ok(diagnostics)
     }
 
@@ -43,17 +50,69 @@ impl LintEngine {
         entity: &Entity,
         parent: &Entity,
         diagnostics: &mut Vec<Diagnostic>,
-        filter_rule: Option<&str>,
+        filter_rules: Option<&[String]>,
     ) {
         for rule in &self.rules.rules {
-            if filter_rule.is_none() || filter_rule == Some(rule.id()) {
+            let run = match filter_rules {
+                None => true,
+                Some(ids) => ids.iter().any(|r| r == rule.id()),
+            };
+            if run {
                 if let Some(diag) = rule.check(entity, parent) {
                     diagnostics.push(diag);
                 }
             }
         }
         for child in entity.get_children() {
-            self.walk(&child, entity, diagnostics, filter_rule);
+            self.walk(&child, entity, diagnostics, filter_rules);
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct CompileCommand {
+    file: String,
+    arguments: Option<Vec<String>>,
+    command: Option<String>,
+}
+
+fn compile_args_for(file: &Path) -> Vec<String> {
+    let cc_path = Path::new("compile_commands.json");
+    if !cc_path.exists() {
+        return Vec::new();
+    }
+    let content = match fs::read_to_string(cc_path) {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+    let entries: Vec<CompileCommand> = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(_) => return Vec::new(),
+    };
+    let file_s = file.to_string_lossy();
+    let cmd = match entries.iter().find(|e| e.file.ends_with(file_s.as_ref())) {
+        Some(c) => c,
+        None => return Vec::new(),
+    };
+    if let Some(args) = &cmd.arguments {
+        return normalize_args(args);
+    }
+    if let Some(command) = &cmd.command {
+        return normalize_args(&command.split_whitespace().map(ToOwned::to_owned).collect::<Vec<_>>());
+    }
+    Vec::new()
+}
+
+fn normalize_args(args: &[String]) -> Vec<String> {
+    args.iter()
+        .filter(|a| {
+            !a.starts_with("clang")
+                && !a.starts_with("g++")
+                && !a.starts_with("c++")
+                && !a.ends_with(".cpp")
+                && !a.ends_with(".cc")
+                && !a.ends_with(".cxx")
+        })
+        .cloned()
+        .collect()
 }

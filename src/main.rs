@@ -138,9 +138,12 @@ enum Commands {
         /// Output format
         #[arg(long, default_value = "text")]
         format: String,
-        /// Run a single rule id
+        /// Comma-separated rule ids (e.g. modern/no-exceptions,memory/leak)
         #[arg(long)]
         rule: Option<String>,
+        /// Print known rule ids and exit
+        #[arg(long)]
+        list_rules: bool,
         /// Disable colored output
         #[arg(long)]
         no_color: bool,
@@ -200,9 +203,18 @@ async fn main() -> Result<()> {
             watch,
             format,
             rule,
+            list_rules,
             no_color,
         }) => {
-            check::execute(fix, watch, &format, rule.as_deref(), no_color).await?;
+            check::execute(
+                fix,
+                watch,
+                &format,
+                rule,
+                list_rules,
+                no_color,
+            )
+            .await?;
         }
         Some(Commands::Lsp) => {
             lsp_cmd::run().await?;

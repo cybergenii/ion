@@ -10,24 +10,25 @@ pub fn quick_dataflow_checks(file: &Path, source: &str) -> Vec<Diagnostic> {
 }
 
 fn must_free_analysis(file: &Path, source: &str) -> Vec<Diagnostic> {
-    let mut allocated: HashSet<String> = HashSet::new();
+    let mut allocated: HashSet<(String, u32)> = HashSet::new();
     let mut freed: HashSet<String> = HashSet::new();
-    for line in source.lines() {
+    for (idx, line) in source.lines().enumerate() {
         if let Some(v) = allocation_var(line) {
-            allocated.insert(v);
+            allocated.insert((v, (idx + 1) as u32));
         }
         if let Some(v) = free_var(line) {
             freed.insert(v);
         }
     }
     allocated
-        .difference(&freed)
-        .map(|v| Diagnostic {
+        .iter()
+        .filter(|(v, _)| !freed.contains(v))
+        .map(|(v, line)| Diagnostic {
             rule: "memory/leak",
             severity: Severity::Warning,
             message: format!("Allocated variable `{v}` may leak across exit paths"),
             file: file.to_path_buf(),
-            line: 1,
+            line: *line,
             column: 1,
             span: None,
             suggestion: Some("Free/delete on all paths or use RAII wrappers".to_string()),
@@ -46,15 +47,22 @@ fn use_after_free_analysis(file: &Path, source: &str) -> Vec<Diagnostic> {
             continue;
         }
         for v in &freed {
-            if line.contains(v) && !line.contains("free(") && !line.contains("delete ") {
+            if line.contains(v)
+                && !line.contains("free(")
+                && !line.contains("delete ")
+                && !line.trim_start().starts_with("//")
+            {
                 out.push(Diagnostic {
                     rule: "memory/use-after-free",
                     severity: Severity::Error,
                     message: format!("Variable `{v}` appears used after free/delete"),
                     file: file.to_path_buf(),
                     line: (idx + 1) as u32,
-                    column: 1,
-                    span: None,
+                    column: (line.find(v).unwrap_or(0) + 1) as u32,
+                    span: Some((
+                        (line.find(v).unwrap_or(0) + 1) as u32,
+                        (line.find(v).unwrap_or(0) + 1 + v.len()) as u32,
+                    )),
                     suggestion: Some("Do not access memory after release".to_string()),
                     fix: None,
                     note: None,

@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 use std::time::SystemTime;
 
-pub fn watch_src(linter: &Linter) -> Result<()> {
+pub fn watch_src(linter: &Linter, filter_rules: Option<&[String]>) -> Result<()> {
     let (tx, rx) = channel();
     let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
     watcher.watch(Path::new("src"), RecursiveMode::Recursive)?;
@@ -19,7 +19,7 @@ pub fn watch_src(linter: &Linter) -> Result<()> {
                         print!("\x1B[2J\x1B[H");
                         println!("[ion] {}", humantime(SystemTime::now()));
                         let single: PathBuf = p;
-                        let diagnostics = linter.run_on_files(&[single], None)?;
+                        let diagnostics = linter.run_on_files(&[single], filter_rules)?;
                         crate::linter::reporter::report(
                             &diagnostics,
                             crate::linter::reporter::OutputFormat::Text,

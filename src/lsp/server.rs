@@ -1,4 +1,5 @@
 use crate::linter::diagnostic::Diagnostic;
+use crate::linter::rules::describe_rule;
 use crate::linter::Linter;
 use crate::lsp::convert::{to_lsp_diagnostic, to_workspace_edit};
 use tower_lsp::lsp_types::{
@@ -140,8 +141,10 @@ impl LanguageServer for IonLspServer {
                         return Ok(Some(Hover {
                             contents: HoverContents::Scalar(tower_lsp::lsp_types::MarkedString::String(
                                 format!(
-                                    "{}\n{}\nhttps://github.com/cybergenii/ion",
-                                    d.rule, d.message
+                                    "{}\n{}\n{}\nhttps://github.com/cybergenii/ion",
+                                    d.rule,
+                                    describe_rule(d.rule),
+                                    d.message
                                 ),
                             )),
                             range: None,

@@ -4,7 +4,7 @@
 
 <!-- [![Build Status](https://github.com/cybergenii/ion/workflows/CI/badge.svg)](https://github.com/cybergenii/ion/actions) -->
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/cybergenii/ion)
+[![Version](https://img.shields.io/badge/version-0.3.0-green.svg)](https://github.com/cybergenii/ion)
 
 ## 🎯 Vision
 
@@ -12,22 +12,24 @@ Ion aims to bring the ease of use found in modern package managers (like Cargo, 
 
 ## ✨ Features
 
-### Available Now (v0.1.0) ✅
+### Available Now (v0.3.0) ✅
 - **Project Scaffolding**: Create new C++ projects with best practices built-in
 - **Multiple Templates**: Executable, library, or header-only project types
 - **Modern Manifest**: Simple TOML configuration (`ion.toml`)
 - **CMake Integration**: Automatic CMakeLists.txt generation
+- **Dependency Management**: Add, install, remove, update, tree, and outdated commands
+- **Multi-Source Registry Support**: Ion, GitHub, Conan, vcpkg, git, and local path dependencies
+- **Lockfile + Cache**: Deterministic `ion.lock` resolution and cached package extraction
+- **Build Pipeline Commands**: `ion build`, `ion run`, `ion test`, `ion clean`
+- **Linting Commands**: `ion check`, `ion check --fix`, `ion check --watch`
 - **Cross-Platform**: Works on Linux, macOS, and Windows
 - **Beautiful CLI**: Colored output with helpful error messages
 
-### Coming Soon 🚧
-- **Package Management**: Install, update, and remove dependencies with a single command
-- **Dependency Resolution**: Smart version constraint solving with PubGrub algorithm
-- **Package Registry**: Centralized registry for C++ packages
-- **Build System**: Fast, incremental builds with caching
-- **Code Linting**: Advanced memory safety and code quality checks
-- **IDE Integration**: Language Server Protocol (LSP) support
-- **Watch Mode**: Real-time code checking as you type
+### In Progress / Coming Soon 🚧
+- **Lint Rule Precision**: Reduce false positives with deeper semantic analysis
+- **Advanced Dataflow**: Better path-sensitive leak/use-after-free reasoning
+- **LSP Maturity**: Richer hover docs and stronger quick-fix workflows
+- **Rule Coverage**: Expand modern C++ and resource-safety checks
 
 ## 🚀 Quick Start
 
@@ -81,7 +83,7 @@ ion new <project-name> [--std 20] [--template executable|library|header-only]
 ion init [--std 20]
 ```
 
-### Dependency Management (Coming Soon)
+### Dependency Management
 
 ```bash
 # Add a dependency
@@ -122,7 +124,7 @@ ion test
 ion clean
 ```
 
-### Code Quality (Coming Soon)
+### Code Quality
 
 ```bash
 # Check code for issues
@@ -202,33 +204,34 @@ ccache = true
 
 ## 🗺️ Roadmap
 
-### Phase 1: Foundation ✅ (Current)
+### Phase 1: Foundation ✅
 - [x] Project scaffolding (`new`, `init`)
 - [x] Manifest parsing (`ion.toml`)
 - [x] CMake generation
 - [x] CLI interface
 
-### Phase 2: Package Manager 🚧 (Months 3-6)
-- [ ] Dependency resolution (PubGrub algorithm)
-- [ ] Package registry client
-- [ ] Package downloading & caching
-- [ ] Package installation & organization
-- [ ] Build system integration
-- [ ] Cross-platform support
+### Phase 2: Package Manager ✅
+- [x] Lockfile generation and freshness checks
+- [x] Multi-source registry adapters
+- [x] Package download/caching and extraction
+- [x] Dependency lifecycle commands (`add/remove/install/update`)
+- [x] Build/run/test/clean command integration
+- [x] CMake dependency wiring support
 
-### Phase 3: Linting (Months 7-9)
-- [ ] Basic memory leak detection
-- [ ] Use-after-free detection
-- [ ] Null pointer dereference checking
-- [ ] Resource leak detection
-- [ ] Modern C++ suggestions
+### Phase 3: Linting 🚧 (In Progress)
+- [x] `ion check` command
+- [x] `ion check --fix`
+- [x] `ion check --watch`
+- [x] Text/JSON/SARIF reporting
+- [ ] Higher-fidelity semantic diagnostics
+- [ ] Broader rule coverage and tuning
 
-### Phase 4: Advanced Features (Months 10-12)
-- [ ] Smart pointer analysis
-- [ ] Lifetime analysis
-- [ ] LSP integration
-- [ ] Auto-fix capabilities
-- [ ] Watch mode
+### Phase 4: Advanced Features 🚧 (In Progress)
+- [x] Initial LSP server plumbing (`ion lsp`)
+- [x] Diagnostic conversion pipeline for editor integration
+- [ ] Smart pointer/lifetime depth analysis
+- [ ] Expanded auto-fix capabilities
+- [ ] Full-featured editor UX polish
 
 ### Phase 5: Production (Months 13-18)
 - [ ] Public beta
@@ -334,14 +337,16 @@ ion/
 │   ├── commands/         # Command implementations
 │   │   ├── new.rs        # Project creation
 │   │   ├── init.rs       # Project initialization
-│   │   ├── install.rs    # Package installation (TODO)
+│   │   ├── install.rs    # Package installation
 │   │   └── ...
 │   ├── manifest.rs       # ion.toml parsing
 │   ├── config.rs         # Configuration management
-│   ├── resolver/         # Dependency resolution (TODO)
-│   ├── registry/         # Package registry client (TODO)
-│   ├── builder/          # Build system (TODO)
-│   └── linter/           # Code analysis (TODO)
+│   ├── resolver/         # Dependency resolution
+│   ├── registry/         # Registry adapters and package retrieval
+│   ├── cmake/            # CMake integration/generation
+│   ├── linter/           # Static analysis + reporting/fixes
+│   ├── analysis/         # CFG/dataflow analysis
+│   └── lsp/              # Language Server Protocol integration
 └── tests/                # Integration tests
 ```
 

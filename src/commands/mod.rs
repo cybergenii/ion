@@ -10,3 +10,5 @@ pub mod test;
 pub mod clean;
 pub mod outdated;
 pub mod tree;
+pub mod check;
+pub mod lsp;

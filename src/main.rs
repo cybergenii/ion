@@ -9,13 +9,16 @@ mod lockfile;
 mod registry;
 mod resolver;
 mod cmake;
+mod linter;
+mod analysis;
+mod lsp;
 
-use commands::{new, init, add, remove, install, update, build, run, test, clean, outdated, tree};
+use commands::{new, init, add, remove, install, update, build, run, test, clean, outdated, tree, check, lsp as lsp_cmd};
 use build::BuildType;
 
 #[derive(Parser)]
 #[command(name = "ion")]
-#[command(version = "0.2.0")]
+#[command(version = "0.3.0")]
 #[command(about = "Modern C++ package manager", long_about = None)]
 #[command(author = "Ion Contributors")]
 #[command(
@@ -119,6 +122,28 @@ enum Commands {
 
     /// Display dependency tree
     Tree,
+
+    /// Run static analysis and lint checks
+    Check {
+        /// Apply machine-fixable diagnostics
+        #[arg(long)]
+        fix: bool,
+        /// Re-run analysis on source changes
+        #[arg(long)]
+        watch: bool,
+        /// Output format
+        #[arg(long, default_value = "text")]
+        format: String,
+        /// Run a single rule id
+        #[arg(long)]
+        rule: Option<String>,
+        /// Disable colored output
+        #[arg(long)]
+        no_color: bool,
+    },
+
+    /// Start the Ion Language Server Protocol endpoint
+    Lsp,
 }
 
 #[tokio::main]
@@ -166,6 +191,18 @@ async fn main() -> Result<()> {
         Some(Commands::Tree) => {
             tree::execute()?;
         }
+        Some(Commands::Check {
+            fix,
+            watch,
+            format,
+            rule,
+            no_color,
+        }) => {
+            check::execute(fix, watch, &format, rule.as_deref(), no_color).await?;
+        }
+        Some(Commands::Lsp) => {
+            lsp_cmd::run().await?;
+        }
 
         None => {
             println!(
@@ -178,6 +215,7 @@ async fn main() -> Result<()> {
             println!("  {}  {}", "ion install".green(), "Install all dependencies");
             println!("  {}  {}", "ion build".green(), "Build the project");
             println!("  {}  {}", "ion run".green(), "Build and run");
+            println!("  {}  {}", "ion check".green(), "Run C++ linting checks");
             println!("  {}  {}", "ion tree".green(), "Show dependency tree");
             println!("  {}  {}", "ion outdated".green(), "Check for updates");
             println!();

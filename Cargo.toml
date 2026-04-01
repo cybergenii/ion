@@ -1,6 +1,6 @@
 [package]
 name = "ionx"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 description = "Modern C++ package manager and linter written in Rust"
 authors = ["Derek Ogagarue <cybersgenii@gmail.com>"]
@@ -44,6 +44,16 @@ comfy-table = "7.1"
 regex       = "1.10"
 tempfile    = "3.8"
 async-trait = "0.1"
+clang = "2.0"
+clang-sys = { version = "1.7", features = ["clang_13_0", "runtime"] }
+tree-sitter = "0.22"
+tree-sitter-cpp = "0.22"
+notify = { version = "6.1", features = ["macos_kqueue"] }
+rayon = "1.8"
+annotate-snippets = "0.11"
+tower-lsp = "0.20"
+lsp-types = "0.95"
+petgraph = "0.6"
 
 # ── Cross-compile safe: reqwest with rustls (no OpenSSL) ──────────────────────
 reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "rustls-tls"] }

@@ -21,7 +21,7 @@ Ion aims to bring the ease of use found in modern package managers (like Cargo, 
 - **Multi-Source Registry Support**: Ion, GitHub, Conan, vcpkg, git, and local path dependencies
 - **Lockfile + Cache**: Deterministic `ion.lock` resolution and cached package extraction
 - **Build Pipeline Commands**: `ion build`, `ion run`, `ion test`, `ion clean`
-- **Linting Commands**: `ion check`, `ion check --fix`, `ion check --watch`
+- **Linting Commands**: `ion check`, `ion check --fix`, `ion check --watch`, `ion check --list-rules`
 - **Cross-Platform**: Works on Linux, macOS, and Windows
 - **Beautiful CLI**: Colored output with helpful error messages
 
@@ -40,6 +40,13 @@ Ion aims to bring the ease of use found in modern package managers (like Cargo, 
 git clone https://github.com/cybergenii/ion
 cd ion
 cargo install --path .
+
+# One-line installer (latest release)
+curl -fsSL https://ion.cybergenii.com/install.sh | sh
+
+# Optional installer overrides
+# ION_INSTALL_DIR="$HOME/.local/bin" ION_VERSION="0.3.0" ION_NO_MODIFY_PATH=1 \
+#   curl -fsSL https://ion.cybergenii.com/install.sh | sh
 
 # Or use cargo directly
 cargo install ion
@@ -129,6 +136,12 @@ ion clean
 ```bash
 # Check code for issues
 ion check
+
+# List available lint rule IDs
+ion check --list-rules
+
+# Run only selected rules (comma-separated)
+ion check --rule modern/no-exceptions,memory/leak
 
 # Check with auto-fix
 ion check --fix
@@ -222,6 +235,8 @@ ccache = true
 - [x] `ion check` command
 - [x] `ion check --fix`
 - [x] `ion check --watch`
+- [x] `ion check --list-rules`
+- [x] Rule filtering via `--rule <id[,id...]>`
 - [x] Text/JSON/SARIF reporting
 - [ ] Higher-fidelity semantic diagnostics
 - [ ] Broader rule coverage and tuning

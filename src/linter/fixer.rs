@@ -100,4 +100,32 @@ mod tests {
         let content = fs::read_to_string(&file).expect("read");
         assert!(content.contains("nullptr"));
     }
+
+    #[test]
+    fn test_apply_c_cast_static_cast_fix() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let file = dir.path().join("cast.cpp");
+        fs::write(&file, "auto x = (int)y;\n").expect("write");
+        let d = Diagnostic {
+            rule: "modern/c-cast",
+            severity: Severity::Info,
+            message: "c-style cast".to_string(),
+            file: PathBuf::from(&file),
+            line: 1,
+            column: 1,
+            span: None,
+            suggestion: None,
+            fix: Some(Fix::Replace {
+                line: 1,
+                col_start: 11,
+                col_end: 17,
+                replacement: "static_cast<int>(y)".to_string(),
+            }),
+            note: None,
+        };
+        let fixer = Fixer;
+        fixer.apply_all(&[d]).expect("fix apply");
+        let content = fs::read_to_string(&file).expect("read");
+        assert!(content.contains("static_cast<int>(y)"));
+    }
 }

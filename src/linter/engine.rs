@@ -1,7 +1,7 @@
 use crate::linter::diagnostic::Diagnostic;
-use crate::linter::rules::RuleSet;
+use crate::linter::rules::{RuleSet, SemanticContext};
 use anyhow::Result;
-use clang::{Clang, Entity, Index};
+use clang::{Clang, Entity, EntityKind, Index, Unsaved};
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
@@ -25,6 +25,17 @@ impl LintEngine {
     }
 
     pub fn analyze_file(&self, file: &Path, filter_rules: Option<&[String]>) -> Result<Vec<Diagnostic>> {
+        let source = fs::read_to_string(file)?;
+        self.analyze_file_with_source(file, &source, filter_rules)
+    }
+
+    /// Parse `file` with optional in-memory buffer (for LSP unsaved documents).
+    pub fn analyze_file_with_source(
+        &self,
+        file: &Path,
+        source: &str,
+        filter_rules: Option<&[String]>,
+    ) -> Result<Vec<Diagnostic>> {
         if !self.enabled {
             return Ok(Vec::new());
         }
@@ -38,10 +49,16 @@ impl LintEngine {
             let refs = args.iter().map(String::as_str).collect::<Vec<_>>();
             parser.arguments(&refs);
         }
+        parser.unsaved(&[Unsaved::new(file, source)]);
         let tu = parser.parse()?;
         let root = tu.get_entity();
         let mut diagnostics = Vec::new();
-        self.walk(&root, &root, &mut diagnostics, filter_rules);
+        let ctx = SemanticContext {
+            file,
+            source,
+            enclosing_function: None,
+        };
+        self.walk(&root, &root, &mut diagnostics, filter_rules, &ctx);
         Ok(diagnostics)
     }
 
@@ -51,22 +68,50 @@ impl LintEngine {
         parent: &Entity,
         diagnostics: &mut Vec<Diagnostic>,
         filter_rules: Option<&[String]>,
+        ctx: &SemanticContext,
     ) {
+        let ctx_here = if is_function_like(entity.get_kind()) {
+            SemanticContext {
+                file: ctx.file,
+                source: ctx.source,
+                enclosing_function: entity
+                    .get_name()
+                    .or_else(|| entity.get_display_name()),
+            }
+        } else {
+            SemanticContext {
+                file: ctx.file,
+                source: ctx.source,
+                enclosing_function: ctx.enclosing_function.clone(),
+            }
+        };
+
         for rule in &self.rules.rules {
             let run = match filter_rules {
                 None => true,
                 Some(ids) => ids.iter().any(|r| r == rule.id()),
             };
             if run {
-                if let Some(diag) = rule.check(entity, parent) {
+                if let Some(diag) = rule.check(&ctx_here, entity, parent) {
                     diagnostics.push(diag);
                 }
             }
         }
         for child in entity.get_children() {
-            self.walk(&child, entity, diagnostics, filter_rules);
+            self.walk(&child, entity, diagnostics, filter_rules, &ctx_here);
         }
     }
+}
+
+fn is_function_like(kind: EntityKind) -> bool {
+    matches!(
+        kind,
+        EntityKind::FunctionDecl
+            | EntityKind::Method
+            | EntityKind::Constructor
+            | EntityKind::Destructor
+            | EntityKind::ConversionFunction
+    )
 }
 
 #[derive(Debug, Deserialize)]

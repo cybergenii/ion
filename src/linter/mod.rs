@@ -7,6 +7,7 @@ pub mod tree;
 pub mod watcher;
 
 use crate::analysis::dataflow;
+use crate::analysis::smart_ptr;
 use anyhow::Result;
 use diagnostic::{Diagnostic, Severity};
 use engine::LintEngine;
@@ -57,13 +58,23 @@ impl Linter {
     pub fn run_on_files(&self, files: &[PathBuf], filter_rules: Option<&[String]>) -> Result<Vec<Diagnostic>> {
         let diagnostics = files
             .par_iter()
-            .map(|file| self.analyze_one(file, filter_rules))
+            .map(|file| self.analyze_one(file, filter_rules, None))
             .collect::<Vec<_>>()
             .into_iter()
             .filter_map(Result::ok)
             .flatten()
             .collect();
         Ok(diagnostics)
+    }
+
+    /// Analyze a single file using an in-memory buffer instead of disk (e.g. LSP unsaved documents).
+    pub fn analyze_file_with_source(
+        &self,
+        file: &Path,
+        source: &str,
+        filter_rules: Option<&[String]>,
+    ) -> Result<Vec<Diagnostic>> {
+        self.analyze_one(file, filter_rules, Some(source))
     }
 
     pub fn run(&self, filter_rules: Option<&[String]>) -> Result<(Vec<Diagnostic>, LintSummary)> {
@@ -90,12 +101,23 @@ impl Linter {
         ))
     }
 
-    fn analyze_one(&self, file: &Path, filter_rules: Option<&[String]>) -> Result<Vec<Diagnostic>> {
-        let mut out = tree::run_tree_sitter_checks(file)?;
+    fn analyze_one(
+        &self,
+        file: &Path,
+        filter_rules: Option<&[String]>,
+        overlay: Option<&str>,
+    ) -> Result<Vec<Diagnostic>> {
+        let source: std::borrow::Cow<'_, str> = match overlay {
+            Some(s) => std::borrow::Cow::Borrowed(s),
+            None => std::borrow::Cow::Owned(fs::read_to_string(file)?),
+        };
+        let source_ref = source.as_ref();
+
+        let mut out = tree::run_tree_sitter_checks_with_content(file, source_ref)?;
+        out.extend(dataflow::quick_dataflow_checks(file, source_ref));
+        out.extend(smart_ptr::smart_ptr_checks(file, source_ref));
         if self.engine.semantic_available() {
-            out.extend(self.engine.analyze_file(file, filter_rules)?);
-            let source = fs::read_to_string(file)?;
-            out.extend(dataflow::quick_dataflow_checks(file, &source));
+            out.extend(self.engine.analyze_file_with_source(file, source_ref, filter_rules)?);
         }
         if let Some(ids) = filter_rules {
             out.retain(|d| ids.iter().any(|r| r.as_str() == d.rule));

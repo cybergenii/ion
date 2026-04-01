@@ -1,12 +1,12 @@
 use crate::linter::diagnostic::Diagnostic;
 use crate::linter::rules::describe_rule;
 use crate::linter::Linter;
-use crate::lsp::convert::{to_lsp_diagnostic, to_workspace_edit};
+use crate::lsp::convert::{ranges_overlap, to_lsp_diagnostic, to_lsp_range, to_workspace_edit};
 use tower_lsp::lsp_types::{
     CodeActionOrCommand, CodeActionParams, CodeActionResponse, DiagnosticOptions,
-    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
-    Hover, HoverContents, HoverParams, InitializeParams, InitializeResult, MessageType,
-    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, Url,
+    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
+    DidSaveTextDocumentParams, Hover, HoverContents, HoverParams, InitializeParams, InitializeResult,
+    MessageType, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, Url,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -17,6 +17,8 @@ pub struct IonLspServer {
     client: Client,
     linter: Arc<Linter>,
     last: Arc<Mutex<HashMap<Url, Vec<Diagnostic>>>>,
+    /// Unsaved document text (full sync).
+    documents: Arc<Mutex<HashMap<Url, String>>>,
 }
 
 impl IonLspServer {
@@ -25,6 +27,7 @@ impl IonLspServer {
             client,
             linter: Arc::new(Linter::new()),
             last: Arc::new(Mutex::new(HashMap::new())),
+            documents: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -33,7 +36,21 @@ impl IonLspServer {
             Ok(p) => p,
             Err(_) => return Vec::new(),
         };
-        self.linter.run_on_files(&[path], None).unwrap_or_default()
+        let text = self
+            .documents
+            .lock()
+            .ok()
+            .and_then(|m| m.get(uri).cloned());
+        match text {
+            Some(t) => self
+                .linter
+                .analyze_file_with_source(&path, &t, None)
+                .unwrap_or_default(),
+            None => std::fs::read_to_string(&path)
+                .ok()
+                .and_then(|s| self.linter.analyze_file_with_source(&path, &s, None).ok())
+                .unwrap_or_default(),
+        }
     }
 }
 
@@ -44,7 +61,7 @@ impl LanguageServer for IonLspServer {
             server_info: None,
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
-                    TextDocumentSyncKind::INCREMENTAL,
+                    TextDocumentSyncKind::FULL,
                 )),
                 diagnostic_provider: Some(
                     tower_lsp::lsp_types::DiagnosticServerCapabilities::Options(DiagnosticOptions {
@@ -68,7 +85,27 @@ impl LanguageServer for IonLspServer {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        let uri = params.text_document.uri;
+        let uri = params.text_document.uri.clone();
+        if let Ok(mut map) = self.documents.lock() {
+            map.insert(uri.clone(), params.text_document.text);
+        }
+        let diagnostics = self.analyze_uri(&uri).await;
+        let lsp_diags = diagnostics.iter().map(to_lsp_diagnostic).collect();
+        self.client.publish_diagnostics(uri.clone(), lsp_diags, None).await;
+        if let Ok(mut map) = self.last.lock() {
+            map.insert(uri, diagnostics);
+        }
+    }
+
+    async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        let uri = params.text_document.uri.clone();
+        for change in params.content_changes {
+            if change.range.is_none() {
+                if let Ok(mut map) = self.documents.lock() {
+                    map.insert(uri.clone(), change.text);
+                }
+            }
+        }
         let diagnostics = self.analyze_uri(&uri).await;
         let lsp_diags = diagnostics.iter().map(to_lsp_diagnostic).collect();
         self.client.publish_diagnostics(uri.clone(), lsp_diags, None).await;
@@ -94,20 +131,33 @@ impl LanguageServer for IonLspServer {
         if let Ok(mut map) = self.last.lock() {
             map.remove(&params.text_document.uri);
         }
+        if let Ok(mut map) = self.documents.lock() {
+            map.remove(&params.text_document.uri);
+        }
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let uri = params.text_document.uri;
         let mut actions: Vec<CodeActionOrCommand> = Vec::new();
+        let req_range = params.range;
         if let Ok(map) = self.last.lock() {
             if let Some(diags) = map.get(&uri) {
                 for d in diags {
                     if let Some(fix) = &d.fix {
+                        let drange = to_lsp_range(
+                            d.line,
+                            d.span.map(|s| s.0).unwrap_or(d.column),
+                            d.span.map(|s| s.1).unwrap_or(d.column + 1),
+                        );
+                        if !ranges_overlap(&drange, &req_range) {
+                            continue;
+                        }
                         let edit = to_workspace_edit(fix, &uri);
+                        let lsp_d = to_lsp_diagnostic(d);
                         let action = tower_lsp::lsp_types::CodeAction {
                             title: format!("Apply ion fix: {}", d.rule),
                             kind: Some(tower_lsp::lsp_types::CodeActionKind::QUICKFIX),
-                            diagnostics: None,
+                            diagnostics: Some(vec![lsp_d]),
                             edit: Some(edit),
                             command: None,
                             is_preferred: Some(true),

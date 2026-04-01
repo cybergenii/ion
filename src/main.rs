@@ -138,7 +138,7 @@ enum Commands {
         /// Output format
         #[arg(long, default_value = "text")]
         format: String,
-        /// Comma-separated rule ids (e.g. modern/no-exceptions,memory/leak)
+        /// Comma-separated rule ids (e.g. modern/nullptr,memory/leak)
         #[arg(long)]
         rule: Option<String>,
         /// Print known rule ids and exit

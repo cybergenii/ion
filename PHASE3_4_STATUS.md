@@ -7,30 +7,34 @@
   - `--fix`
   - `--watch`
   - `--format text|json|sarif`
-  - `--rule <id>`
+  - `--rule <id[,id...]>`
+  - `--list-rules`
   - `--no-color`
-- Phase 4 analysis modules:
-  - CFG scaffolding via `petgraph`
-  - lightweight forward-style dataflow checks for leaks and use-after-free
+- Semantic analysis context (`SemanticContext`) for libclang rules: enclosing function name, full file source for cross-checks.
+- Textual analysis always runs (even without libclang): tree-sitter modern checks, dataflow, smart-pointer heuristics.
+- Smart-pointer / ownership heuristics (`src/analysis/smart_ptr.rs`): `memory/smart-get`, `memory/raw-from-smart`, `memory/move-after-use`, `memory/shared-cycle-hint`.
+- Refined semantic rules: double-free only when duplicate free/delete matches the same variable in-file; `null/deref` skips `*this`; resource leak skips `std::`/`filesystem::` call patterns; memory leak skips `make_unique`/`make_shared`.
+- Auto-fix: `modern/c-cast` suggests `static_cast` with machine-applicable `Fix::Replace` when a simple `(Type)expr` is detected.
 - Phase 4 LSP:
   - `ion lsp` command
-  - Tower LSP server with open/save/close diagnostics
-  - quick-fix code actions for `Fix::Replace`
-  - hover details for flagged spans
+  - Full document sync with `did_open` / `did_change` / `did_save` / `did_close`
+  - In-memory buffers for unsaved files (same pipeline as CLI via `analyze_file_with_source`)
+  - Diagnostics include `code` and `code_description`; notes map to `related_information` when a file URL resolves
+  - Quick-fix code actions filtered by request range and linked to diagnostics
+  - Hover for diagnostic spans
 
 ## Runtime behavior with and without libclang
 
 - If `libclang` is available:
-  - semantic checks run via `src/linter/engine.rs`
-  - dataflow checks are added into the same diagnostic pipeline
+  - semantic checks run via `src/linter/engine.rs` (with unsaved buffers when used from LSP)
 - If `libclang` is not available:
-  - tree-sitter based checks still run
+  - tree-sitter + dataflow + smart-pointer heuristics still run
   - Ion prints:
     - `[ion] warning: libclang not found — semantic checks disabled`
 
 ## Known limitations
 
-- Semantic rules currently use conservative heuristics and may report false positives.
-- CFG builder is intentionally minimal and currently acts as a foundation for deeper path-sensitive analysis.
-- Some modern checks are pattern-based and do not yet perform full semantic validation.
-- Watch mode performs direct re-analysis of changed files; batching/debouncing can be improved.
+- Semantic rules still use heuristics; some findings may be false positives or negatives.
+- CFG builder remains a foundation for deeper path-sensitive analysis.
+- Smart-pointer checks are pattern-based, not full ownership/CFG analysis.
+- `memory/shared-cycle-hint` may trigger on benign multi-`shared_ptr` designs; treat as informational.

@@ -1,5 +1,5 @@
 use crate::linter::diagnostic::{Diagnostic, Severity};
-use crate::linter::rules::Rule;
+use crate::linter::rules::{Rule, SemanticContext};
 use clang::{Entity, EntityKind};
 
 pub struct ResourceLeakRule;
@@ -17,7 +17,7 @@ impl Rule for ResourceLeakRule {
         "Resource acquisition without guaranteed close/release"
     }
 
-    fn check(&self, entity: &Entity, _parent: &Entity) -> Option<Diagnostic> {
+    fn check(&self, ctx: &SemanticContext, entity: &Entity, _parent: &Entity) -> Option<Diagnostic> {
         if entity.get_kind() != EntityKind::CallExpr {
             return None;
         }
@@ -25,21 +25,31 @@ impl Rule for ResourceLeakRule {
         if !(display.contains("fopen") || display.contains("open") || display.contains("socket")) {
             return None;
         }
+        // Skip obvious C++ std::fstream / path helpers (heuristic).
+        if display.contains("std::") || display.contains("filesystem::") {
+            return None;
+        }
         let loc = entity.get_location()?;
         let file = loc.get_file_location().file?;
+        let fl = loc.get_file_location();
+        let scope = ctx
+            .enclosing_function
+            .as_ref()
+            .map(|f| format!(" (function `{f}`)"))
+            .unwrap_or_default();
         Some(Diagnostic {
             rule: "resource/leak",
             severity: Severity::Warning,
-            message: format!("Resource acquisition via `{display}` may leak"),
+            message: format!("Resource acquisition via `{display}` may leak{scope}"),
             file: file.get_path(),
-            line: loc.get_file_location().line,
-            column: loc.get_file_location().column,
+            line: fl.line,
+            column: fl.column,
             span: None,
             suggestion: Some(
                 "Wrap in RAII guard or ensure `fclose`/`close` on all paths".to_string(),
             ),
             fix: None,
-            note: None,
+            note: Some("Heuristic: verify pairing with fclose/close on all paths".to_string()),
         })
     }
 }

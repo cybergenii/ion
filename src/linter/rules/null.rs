@@ -1,5 +1,5 @@
 use crate::linter::diagnostic::{Diagnostic, Severity};
-use crate::linter::rules::Rule;
+use crate::linter::rules::{Rule, SemanticContext};
 use clang::{Entity, EntityKind};
 
 pub struct NullDerefRule;
@@ -17,7 +17,7 @@ impl Rule for NullDerefRule {
         "Pointer dereference without nearby null guard"
     }
 
-    fn check(&self, entity: &Entity, _parent: &Entity) -> Option<Diagnostic> {
+    fn check(&self, ctx: &SemanticContext, entity: &Entity, _parent: &Entity) -> Option<Diagnostic> {
         if entity.get_kind() != EntityKind::UnaryOperator {
             return None;
         }
@@ -25,19 +25,29 @@ impl Rule for NullDerefRule {
         if !display.contains('*') {
             return None;
         }
+        // Skip obvious `*this` member access patterns (often non-null in instance methods).
+        if display.contains("this") {
+            return None;
+        }
         let loc = entity.get_location()?;
         let file = loc.get_file_location().file?;
+        let fl = loc.get_file_location();
+        let scope = ctx
+            .enclosing_function
+            .as_ref()
+            .map(|f| format!(" (in `{f}`)"))
+            .unwrap_or_default();
         Some(Diagnostic {
             rule: "null/deref",
             severity: Severity::Warning,
-            message: "Pointer dereference may require null check".to_string(),
+            message: format!("Pointer dereference may require null check{scope}"),
             file: file.get_path(),
-            line: loc.get_file_location().line,
-            column: loc.get_file_location().column,
+            line: fl.line,
+            column: fl.column,
             span: None,
             suggestion: Some("Check pointer is non-null before dereferencing".to_string()),
             fix: None,
-            note: None,
+            note: Some("Heuristic: verify against control flow and invariants".to_string()),
         })
     }
 }

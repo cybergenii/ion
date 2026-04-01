@@ -8,11 +8,12 @@
 
 ## 🎯 Vision
 
-Ion aims to bring the ease of use found in modern package managers (like Cargo, npm, pip) to the C++ ecosystem. No more wrestling with CMake configurations, dependency hell, or manual library management. Ion handles it all.
+Ion aims to bring the ease of use found in modern package managers (like Cargo, npm, pip) to the C++ ecosystem. No more wrestling with CMake configurations, dependency hell, or manual library management. With Ion, you can create a full C++ project, import dependencies, build/run/test it, and lint it from one CLI.
 
 ## ✨ Features
 
 ### Available Now (v0.3.0) ✅
+- **End-to-End Workflow**: Scaffold, depend, build, run, test, clean, and lint a full C++ project from one tool
 - **Project Scaffolding**: Create new C++ projects with best practices built-in
 - **Multiple Templates**: Executable, library, or header-only project types
 - **Modern Manifest**: Simple TOML configuration (`ion.toml`)
@@ -21,11 +22,12 @@ Ion aims to bring the ease of use found in modern package managers (like Cargo, 
 - **Multi-Source Registry Support**: Ion, GitHub, Conan, vcpkg, git, and local path dependencies
 - **Lockfile + Cache**: Deterministic `ion.lock` resolution and cached package extraction
 - **Build Pipeline Commands**: `ion build`, `ion run`, `ion test`, `ion clean`
-- **Linting Commands**: `ion check`, `ion check --fix`, `ion check --watch`, `ion check --list-rules`
+- **Linting Commands**: `ion check`, `ion check --fix`, `ion check --watch`, `ion check --list-rules`, smart-pointer heuristics (`memory/smart-get`, `memory/raw-from-smart`, …)
 - **Cross-Platform**: Works on Linux, macOS, and Windows
 - **Beautiful CLI**: Colored output with helpful error messages
 
 ### In Progress / Coming Soon 🚧
+- **Quality Focus**: Existing workflow is complete; current work is on deeper analysis precision and UX polish
 - **Lint Rule Precision**: Reduce false positives with deeper semantic analysis
 - **Advanced Dataflow**: Better path-sensitive leak/use-after-free reasoning
 - **LSP Maturity**: Richer hover docs and stronger quick-fix workflows
@@ -141,7 +143,7 @@ ion check
 ion check --list-rules
 
 # Run only selected rules (comma-separated)
-ion check --rule modern/no-exceptions,memory/leak
+ion check --rule modern/nullptr,memory/leak
 
 # Check with auto-fix
 ion check --fix
@@ -238,15 +240,17 @@ ccache = true
 - [x] `ion check --list-rules`
 - [x] Rule filtering via `--rule <id[,id...]>`
 - [x] Text/JSON/SARIF reporting
-- [ ] Higher-fidelity semantic diagnostics
-- [ ] Broader rule coverage and tuning
+- [x] Semantic context for AST rules (enclosing function, full-file source for cross-checks)
+- [x] Tuned heuristics (double-free gating, nullptr/resource filters)
+- [ ] Deeper path-sensitive / interprocedural analysis
 
 ### Phase 4: Advanced Features 🚧 (In Progress)
 - [x] Initial LSP server plumbing (`ion lsp`)
 - [x] Diagnostic conversion pipeline for editor integration
-- [ ] Smart pointer/lifetime depth analysis
-- [ ] Expanded auto-fix capabilities
-- [ ] Full-featured editor UX polish
+- [x] Smart-pointer heuristics (`memory/smart-get`, `memory/raw-from-smart`, `memory/move-after-use`, `memory/shared-cycle-hint`)
+- [x] Expanded auto-fix (`modern/c-cast` → `static_cast` when safe)
+- [x] Editor UX: full sync, unsaved buffers, diagnostic `code`, range-filtered code actions
+- [ ] Symbol-aware navigation (go-to-def, etc.)
 
 ### Phase 5: Production (Months 13-18)
 - [ ] Public beta

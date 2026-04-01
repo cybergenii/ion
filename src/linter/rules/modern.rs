@@ -38,27 +38,53 @@ pub fn check_null_literal(file: &Path, content: &str) -> Vec<Diagnostic> {
         .collect()
 }
 
+/// Simple `(Type)expr` on one line → `static_cast<Type>(expr)` when `Type` is a single identifier.
+pub fn try_static_cast_fix(line: &str) -> Option<(usize, usize, String)> {
+    if line.contains("static_cast") || line.contains("reinterpret_cast") {
+        return None;
+    }
+    let open = line.find('(')?;
+    let after = &line[open + 1..];
+    let close_rel = after.find(')')?;
+    let ty = &after[..close_rel];
+    if ty.is_empty() || !ty.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        return None;
+    }
+    let tail = after[close_rel + 1..].trim_start();
+    let end_expr = tail
+        .find(|c: char| c.is_whitespace() || c == ';' || c == ',' || c == ')')
+        .unwrap_or(tail.len());
+    let expr = &tail[..end_expr];
+    if expr.is_empty() {
+        return None;
+    }
+    let replacement = format!("static_cast<{ty}>({expr})");
+    let col_start = open + 1;
+    let col_end = open + 1 + close_rel + 1 + end_expr + 1;
+    Some((col_start, col_end, replacement))
+}
+
 pub fn check_c_casts(file: &Path, content: &str) -> Vec<Diagnostic> {
     content
         .lines()
         .enumerate()
         .filter_map(|(idx, line)| {
-            if line.contains("static_cast<") || !line.contains('(') || !line.contains(')') {
-                return None;
-            }
-            if !(line.contains(") ") || line.contains(")(")) {
-                return None;
-            }
+            let (cs, ce, repl) = try_static_cast_fix(line)?;
             Some(Diagnostic {
                 rule: "modern/c-cast",
                 severity: Severity::Info,
                 message: "C-style cast detected".to_string(),
                 file: file.to_path_buf(),
                 line: (idx + 1) as u32,
-                column: 1,
+                column: cs as u32,
                 span: None,
                 suggestion: Some("Prefer `static_cast<Type>(expr)`".to_string()),
-                fix: None,
+                fix: Some(Fix::Replace {
+                    line: (idx + 1) as u32,
+                    col_start: cs,
+                    col_end: ce,
+                    replacement: repl,
+                }),
                 note: None,
             })
         })
@@ -154,5 +180,17 @@ mod tests {
     fn modern_printf_detects_printf() {
         let diags = check_printf(Path::new("a.cpp"), "printf(\"%d\", x);");
         assert!(!diags.is_empty());
+    }
+
+    #[test]
+    fn try_static_cast_fix_rewrites_int_cast() {
+        let (_, _, r) = try_static_cast_fix("auto x = (int)y;").expect("expected");
+        assert_eq!(r, "static_cast<int>(y)");
+    }
+
+    #[test]
+    fn check_c_casts_emits_fix() {
+        let diags = check_c_casts(Path::new("a.cpp"), "auto x = (int)y;");
+        assert!(diags.iter().any(|d| d.fix.is_some()));
     }
 }

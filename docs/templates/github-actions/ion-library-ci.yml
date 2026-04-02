@@ -1,0 +1,209 @@
+# =============================================================================
+# Ion — reference GitHub Actions workflow for C++ projects using ion.toml
+# =============================================================================
+# Copy to your repo:  .github/workflows/ion-ci.yml
+#
+# Requires: ion.toml at repo root; project must build with Ion locally first.
+#
+# Installs the Ion CLI from GitHub (tag v${ION_VERSION}) so the CLI matches
+# released sources. Alternative: `cargo install ionx --version …` from crates.io
+# when the published version matches your needs — https://crates.io/crates/ionx
+#
+# Optional: enable the publish job after your registry implements
+# docs/PUBLISH_API.md — set secrets ION_REGISTRY_TOKEN (+ optional ION_REGISTRY_URL).
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.repository.full_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Pin the Ion CLI; bump after you validate a release: https://github.com/cybergenii/ion/releases
+  ION_VERSION: "0.3.0"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-test-lint:
+    name: Build · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo home
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-ion-git-${{ env.ION_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-ion-git-
+
+      - name: Install Ion CLI (from Git tag v${{ env.ION_VERSION }})
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v ion >/dev/null 2>&1; then
+            ion --version
+            exit 0
+          fi
+          cargo install ionx --locked \
+            --git https://github.com/cybergenii/ion.git \
+            --tag "v${ION_VERSION}"
+
+      - name: Cache Ion package downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ion
+          key: ${{ runner.os }}-ion-pkgs-${{ hashFiles('ion.toml', 'ion.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-ion-pkgs-
+
+      - name: Install libclang (Ubuntu — semantic ion check)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libclang-dev
+
+      - name: Install dependencies
+        run: ion install
+
+      - name: Build (release)
+        run: ion build --build-type release
+
+      - name: Test
+        run: ion test
+
+      - name: Lint
+        run: ion check
+
+  windows-smoke:
+    name: Build · Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: windows-cargo-ion-git-${{ env.ION_VERSION }}
+      - name: Install Ion
+        run: |
+          cargo install ionx --locked `
+            --git https://github.com/cybergenii/ion.git `
+            --tag "v$env:ION_VERSION"
+        shell: pwsh
+      - run: ion install
+        shell: pwsh
+      - run: ion build --build-type release
+        shell: pwsh
+      - run: ion test
+        shell: pwsh
+
+  # ---------------------------------------------------------------------------
+  # Registry publish — enable when docs/PUBLISH_API.md is implemented server-side
+  # Secrets: ION_REGISTRY_TOKEN (required), ION_REGISTRY_URL (optional)
+  # Runs only on GitHub Release "published" (tag v* recommended)
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish to Ion registry
+    needs: [build-test-lint]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gate on secret
+        id: gate
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.ION_REGISTRY_TOKEN }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::ION_REGISTRY_TOKEN not set — skipping publish."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package name from ion.toml
+        if: steps.gate.outputs.skip != 'true'
+        id: pkg
+        shell: bash
+        run: |
+          python3 << 'PY'
+          import os, tomllib
+          with open("ion.toml", "rb") as f:
+              name = tomllib.load(f)["package"]["name"]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"name={name}\n")
+          PY
+
+      - name: Create source tarball
+        if: steps.gate.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          tar -czvf "package-${VERSION}.tar.gz" \
+            --exclude='./build' \
+            --exclude='./.git' \
+            --exclude='./target' \
+            .
+
+      - name: Checksum
+        if: steps.gate.outputs.skip != 'true'
+        id: sum
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "checksum=sha256:$(sha256sum "package-${VERSION}.tar.gz" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Register version (enable when API is live)
+        if: steps.gate.outputs.skip != 'true'
+        shell: bash
+        env:
+          REGISTRY_URL: ${{ secrets.ION_REGISTRY_URL }}
+          TOKEN: ${{ secrets.ION_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          REGISTRY_URL="${REGISTRY_URL:-https://registry.ion-cpp.dev}"
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "Registry: ${REGISTRY_URL}"
+          echo "Package: ${{ steps.pkg.outputs.name }}@${VERSION}"
+          echo "See docs/PUBLISH_API.md for multipart upload — wire curl here when the endpoint exists."
+          # Example (uncomment when ready):
+          # curl -f -X POST "${REGISTRY_URL}/api/v1/packages/${{ steps.pkg.outputs.name }}/versions" \
+          #   -H "Authorization: Bearer ${TOKEN}" \
+          #   -H "Idempotency-Key: ${{ github.run_id }}-${{ github.sha }}" \
+          #   -F "metadata=@metadata.json;type=application/json" \
+          #   -F "artifact=@package-${VERSION}.tar.gz"

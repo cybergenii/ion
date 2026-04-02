@@ -281,7 +281,7 @@ ccache = true
 
 ### Phase 5: Production (Months 13-18)
 - [ ] Public beta
-- [ ] Package ecosystem (200+ packages)
+- [ ] Package ecosystem (200+ curated packages) — prerequisite: [registry, CI, and publishing architecture](docs/ECOSYSTEM_ARCHITECTURE.md)
 - [ ] Enterprise features
 - [ ] v1.0 launch
 
@@ -371,6 +371,8 @@ ion/
 └── tests/                # Integration tests
 ```
 
+**Scaling the package catalog** (registry service, tarball contract, maintainer CI, quality gates) is outlined in [docs/ECOSYSTEM_ARCHITECTURE.md](docs/ECOSYSTEM_ARCHITECTURE.md). The CLI in this repo implements the **consumer** side (`src/registry/ion.rs`); a large ecosystem also needs server-side publishing and automated package builds.
+
 ## License
 
 Distributed under the [MIT License](LICENSE).
@@ -386,5 +388,8 @@ Rust and Cargo; Conan and vcpkg for prior art in C++ packaging; clang and the LL
 - [Documentation](https://ion.cybergenii.com/docs)
 - [Examples](https://github.com/cybergenii/ion-examples)
 - [Contributing](CONTRIBUTING.md)
+- [Package ecosystem architecture](docs/ECOSYSTEM_ARCHITECTURE.md) (roadmap)
+- [Publish API (draft)](docs/PUBLISH_API.md)
+- [CI templates for library authors](docs/templates/README.md)
 
 Maintainer contact: [cybersgenii@gmail.com](mailto:cybersgenii@gmail.com) · [@cyber_genii](https://twitter.com/cyber_genii)

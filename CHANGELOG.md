@@ -67,7 +67,7 @@ This is the first release of Ion, focusing on project scaffolding and the founda
 
 **Installation:**
 ```bash
-cargo install ion
+cargo install ionx
 ```
 
 **Usage:**

@@ -70,7 +70,7 @@ curl -fsSL https://ion.cybergenii.com/install.sh | sh
 # ION_SKIP_DEPS=1      # skip dependency checks entirely
 
 # Or use cargo directly
-cargo install ion
+cargo install ionx
 ```
 
 ### Create Your First Project

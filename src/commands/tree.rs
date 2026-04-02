@@ -29,7 +29,11 @@ fn print_lock_tree(manifest: &Manifest, lock: &Lockfile) -> Result<()> {
 
     let lock_map = lock.as_map();
     let direct_deps: Vec<&str> = manifest.dependencies.keys().map(|k| k.as_str()).collect();
-    let direct_dev_deps: Vec<&str> = manifest.dev_dependencies.keys().map(|k| k.as_str()).collect();
+    let direct_dev_deps: Vec<&str> = manifest
+        .dev_dependencies
+        .keys()
+        .map(|k| k.as_str())
+        .collect();
 
     let mut seen = HashSet::new();
 
@@ -59,11 +63,7 @@ fn print_lock_tree(manifest: &Manifest, lock: &Lockfile) -> Result<()> {
     }
 
     println!();
-    println!(
-        "  {} {} packages total",
-        "→".cyan(),
-        lock.packages.len()
-    );
+    println!("  {} {} packages total", "→".cyan(), lock.packages.len());
 
     Ok(())
 }
@@ -100,7 +100,9 @@ fn print_node(
         if !seen.contains(&pkg.name) {
             seen.insert(pkg.name.clone());
 
-            let deps: Vec<String> = pkg.dependencies.iter()
+            let deps: Vec<String> = pkg
+                .dependencies
+                .iter()
                 .map(|d| d.split_whitespace().next().unwrap_or(d).to_string())
                 .collect();
 

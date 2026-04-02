@@ -38,10 +38,7 @@ pub async fn execute_in_dir(project_root: &std::path::Path) -> Result<()> {
     let existing_lock = Lockfile::load(project_root)?;
 
     // Set up registry manager
-    let registry = RegistryManager::with_defaults(
-        &config.cache.directory,
-        config.github_token(),
-    )?;
+    let registry = RegistryManager::with_defaults(&config.cache.directory, config.github_token())?;
 
     // Resolve dependencies
     let resolved = resolver::resolve(
@@ -49,7 +46,8 @@ pub async fn execute_in_dir(project_root: &std::path::Path) -> Result<()> {
         &registry,
         existing_lock.as_ref(),
         false, // don't force update unless explicitly requested
-    ).await?;
+    )
+    .await?;
 
     if resolved.packages.is_empty() {
         println!("{}", "  All dependencies already satisfied.".dimmed());
@@ -97,8 +95,9 @@ pub async fn execute_in_dir(project_root: &std::path::Path) -> Result<()> {
                 pkg_info.name.cyan(),
                 pkg_info.version.dimmed()
             );
-            registry.download(&pkg_info).await
-                .with_context(|| format!("Failed to download {}@{}", pkg_info.name, pkg_info.version))?
+            registry.download(&pkg_info).await.with_context(|| {
+                format!("Failed to download {}@{}", pkg_info.name, pkg_info.version)
+            })?
         };
 
         // Generate CMake config file for this package
@@ -125,17 +124,23 @@ pub async fn execute_in_dir(project_root: &std::path::Path) -> Result<()> {
     for pkg in &locked_packages {
         lockfile.upsert(pkg.clone());
     }
-    lockfile.save(project_root).context("Failed to write ion.lock")?;
+    lockfile
+        .save(project_root)
+        .context("Failed to write ion.lock")?;
     println!("  {} Wrote {}", "✓".green(), "ion.lock".dimmed());
 
     // Update CMakeLists.txt
     let cmake_gen = CmakeGenerator::new(project_root);
     if project_root.join("CMakeLists.txt").exists() {
-        cmake_gen.update(&locked_packages, &ion_cmake_dir)
+        cmake_gen
+            .update(&locked_packages, &ion_cmake_dir)
             .context("Failed to update CMakeLists.txt")?;
         println!("  {} Patched {}", "✓".green(), "CMakeLists.txt".dimmed());
     } else {
-        println!("  {} No CMakeLists.txt found — skipping CMake integration.", "⚠".yellow());
+        println!(
+            "  {} No CMakeLists.txt found — skipping CMake integration.",
+            "⚠".yellow()
+        );
     }
 
     println!(
@@ -149,11 +154,19 @@ pub async fn execute_in_dir(project_root: &std::path::Path) -> Result<()> {
 
 /// Determine source type from URI prefix
 fn detect_source_type(uri: &str) -> String {
-    if uri.starts_with("ion+") { "ion".to_string() }
-    else if uri.starts_with("github+") { "github".to_string() }
-    else if uri.starts_with("conan+") { "conan".to_string() }
-    else if uri.starts_with("vcpkg+") { "vcpkg".to_string() }
-    else if uri.starts_with("git+") { "git".to_string() }
-    else if uri.starts_with("path+") { "local".to_string() }
-    else { "unknown".to_string() }
+    if uri.starts_with("ion+") {
+        "ion".to_string()
+    } else if uri.starts_with("github+") {
+        "github".to_string()
+    } else if uri.starts_with("conan+") {
+        "conan".to_string()
+    } else if uri.starts_with("vcpkg+") {
+        "vcpkg".to_string()
+    } else if uri.starts_with("git+") {
+        "git".to_string()
+    } else if uri.starts_with("path+") {
+        "local".to_string()
+    } else {
+        "unknown".to_string()
+    }
 }

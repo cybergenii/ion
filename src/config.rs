@@ -112,11 +112,21 @@ pub struct BuildConfig {
     pub cmake_flags: Vec<String>,
 }
 
-fn default_registry() -> String { "ion".to_string() }
-fn default_registry_url() -> String { "https://registry.ion-cpp.dev".to_string() }
-fn default_conan_url() -> String { "https://conan.io/center".to_string() }
-fn default_cache_size() -> u64 { 4096 }
-fn default_true() -> bool { true }
+fn default_registry() -> String {
+    "ion".to_string()
+}
+fn default_registry_url() -> String {
+    "https://registry.ion-cpp.dev".to_string()
+}
+fn default_conan_url() -> String {
+    "https://conan.io/center".to_string()
+}
+fn default_cache_size() -> u64 {
+    4096
+}
+fn default_true() -> bool {
+    true
+}
 
 fn default_cache_dir() -> PathBuf {
     dirs::cache_dir()
@@ -132,8 +142,8 @@ impl Config {
             if config_path.exists() {
                 let content = std::fs::read_to_string(&config_path)
                     .context("Failed to read Ion config file")?;
-                let config: Config = toml::from_str(&content)
-                    .context("Failed to parse Ion config file")?;
+                let config: Config =
+                    toml::from_str(&content).context("Failed to parse Ion config file")?;
                 return Ok(config);
             }
         }
@@ -145,19 +155,19 @@ impl Config {
         let config_dir = dirs::config_dir()
             .context("Cannot find config directory")?
             .join("ion");
-        std::fs::create_dir_all(&config_dir)
-            .context("Failed to create Ion config directory")?;
+        std::fs::create_dir_all(&config_dir).context("Failed to create Ion config directory")?;
         let config_path = config_dir.join("config.toml");
-        let content = toml::to_string_pretty(self)
-            .context("Failed to serialize config")?;
-        std::fs::write(&config_path, content)
-            .context("Failed to write Ion config file")?;
+        let content = toml::to_string_pretty(self).context("Failed to serialize config")?;
+        std::fs::write(&config_path, content).context("Failed to write Ion config file")?;
         Ok(())
     }
 
     /// Resolve the GitHub token: config file > GITHUB_TOKEN env var
     pub fn github_token(&self) -> Option<String> {
-        self.registry.github.token.clone()
+        self.registry
+            .github
+            .token
+            .clone()
             .or_else(|| std::env::var("GITHUB_TOKEN").ok())
     }
 

@@ -71,7 +71,10 @@ fn spelling_to_position(loc: &clang::source::Location, file_text: &str) -> Optio
     let character = line_at(file_text, line0)
         .map(|l| clang_column_to_utf16(l, loc.column))
         .unwrap_or_else(|| loc.column.saturating_sub(1));
-    Some(Position { line: line0, character })
+    Some(Position {
+        line: line0,
+        character,
+    })
 }
 
 /// If end equals start (clang sometimes does), nudge end one UTF-16 unit for a non-empty range.
@@ -94,12 +97,7 @@ fn file_text_for<'a>(path: &Path, primary: &Path, primary_src: &'a str) -> Cow<'
 }
 
 /// Resolve the definition of the symbol at `line0` / `character0` (LSP 0-based).
-pub fn goto_definition(
-    file: &Path,
-    source: &str,
-    line0: u32,
-    character0: u32,
-) -> Option<Location> {
+pub fn goto_definition(file: &Path, source: &str, line0: u32, character0: u32) -> Option<Location> {
     let clang = Clang::new().ok()?;
     let index = Index::new(&clang, false, false);
     let mut parser = index.parser(file);
@@ -114,7 +112,8 @@ pub fn goto_definition(
     let tu = parser.parse().ok()?;
     let cfile = tu.get_file(file)?;
     let line_str = line_at(source, line0)?;
-    let byte_off = utf16_offset_to_byte_offset(line_str, character0).unwrap_or(line_str.len() as u32);
+    let byte_off =
+        utf16_offset_to_byte_offset(line_str, character0).unwrap_or(line_str.len() as u32);
     let line = line0.saturating_add(1);
     let col = byte_off.saturating_add(1);
     let sl = cfile.get_location(line, col);

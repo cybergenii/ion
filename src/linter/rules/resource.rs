@@ -17,7 +17,12 @@ impl Rule for ResourceLeakRule {
         "Resource acquisition without guaranteed close/release"
     }
 
-    fn check(&self, ctx: &SemanticContext, entity: &Entity, _parent: &Entity) -> Option<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &SemanticContext,
+        entity: &Entity,
+        _parent: &Entity,
+    ) -> Option<Diagnostic> {
         if entity.get_kind() != EntityKind::CallExpr {
             return None;
         }

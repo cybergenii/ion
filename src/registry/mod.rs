@@ -91,14 +91,9 @@ pub enum DependencySpec {
         rev: GitRev,
     },
     /// ConanCenter: `fmt = { conan = "fmt/10.2.1@" }`
-    Conan {
-        reference: String,
-    },
+    Conan { reference: String },
     /// vcpkg: `fmt = { vcpkg = "fmt" }`
-    Vcpkg {
-        port: String,
-        features: Vec<String>,
-    },
+    Vcpkg { port: String, features: Vec<String> },
     /// Local path: `mylib = { path = "../mylib" }`
     Local {
         name: String,
@@ -112,9 +107,7 @@ impl DependencySpec {
         match self {
             DependencySpec::Ion { name, .. } => name,
             DependencySpec::Git { name, .. } => name,
-            DependencySpec::Conan { reference } => {
-                reference.split('/').next().unwrap_or(reference)
-            }
+            DependencySpec::Conan { reference } => reference.split('/').next().unwrap_or(reference),
             DependencySpec::Vcpkg { port, .. } => port,
             DependencySpec::Local { name, .. } => name,
         }
@@ -173,10 +166,7 @@ impl RegistryManager {
                 return registry.resolve(name, &version_req).await;
             }
         }
-        anyhow::bail!(
-            "No registry can handle this dependency: {:?}",
-            spec.name()
-        )
+        anyhow::bail!("No registry can handle this dependency: {:?}", spec.name())
     }
 
     /// Download a package, using cache if available
@@ -188,7 +178,9 @@ impl RegistryManager {
 
         // Find the registry that owns this source
         for registry in &self.registries {
-            if info.source_uri.starts_with(&format!("{}+", registry.name()))
+            if info
+                .source_uri
+                .starts_with(&format!("{}+", registry.name()))
                 || info.source == registry.name()
             {
                 let result = registry.download(info, &self.cache).await?;
@@ -205,7 +197,11 @@ impl RegistryManager {
             }
         }
 
-        anyhow::bail!("Cannot find a registry to download: {} {}", info.name, info.version)
+        anyhow::bail!(
+            "Cannot find a registry to download: {} {}",
+            info.name,
+            info.version
+        )
     }
 
     pub fn cache(&self) -> &PackageCache {

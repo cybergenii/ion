@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
-use super::{DownloadResult, DependencySpec, PackageCache, PackageInfo, Registry};
+use super::{DependencySpec, DownloadResult, PackageCache, PackageInfo, Registry};
 
 /// vcpkg port index adapter.
 /// Resolves packages from the vcpkg public registry using vcpkg's Git-based port index.
@@ -40,7 +40,11 @@ impl VcpkgRegistry {
         if cache_path.exists() {
             if let Ok(meta) = std::fs::metadata(&cache_path) {
                 if let Ok(modified) = meta.modified() {
-                    if modified.elapsed().map(|d| d.as_secs() < 86400).unwrap_or(false) {
+                    if modified
+                        .elapsed()
+                        .map(|d| d.as_secs() < 86400)
+                        .unwrap_or(false)
+                    {
                         let content = std::fs::read_to_string(&cache_path)?;
                         if let Ok(baseline) = serde_json::from_str(&content) {
                             return Ok(baseline);
@@ -51,19 +55,29 @@ impl VcpkgRegistry {
         }
 
         // Fetch from GitHub
-        let resp = self.client.get(url).send().await
+        let resp = self
+            .client
+            .get(url)
+            .send()
+            .await
             .context("Failed to fetch vcpkg baseline")?;
         let text = resp.text().await?;
         std::fs::write(&cache_path, &text)?;
-        let baseline: VcpkgBaseline = serde_json::from_str(&text)
-            .context("Failed to parse vcpkg baseline")?;
+        let baseline: VcpkgBaseline =
+            serde_json::from_str(&text).context("Failed to parse vcpkg baseline")?;
         Ok(baseline)
     }
 
     async fn fetch_port_versions(&self, name: &str) -> Result<Vec<String>> {
         // vcpkg versions are stored per-port at:
         // /versions/{first_char}-/{name}.json
-        let first_char = name.chars().next().unwrap_or('a').to_lowercase().next().unwrap();
+        let first_char = name
+            .chars()
+            .next()
+            .unwrap_or('a')
+            .to_lowercase()
+            .next()
+            .unwrap();
         let url = format!(
             "https://raw.githubusercontent.com/microsoft/vcpkg/master/versions/{}-/{}.json",
             first_char, name
@@ -95,10 +109,13 @@ impl VcpkgRegistry {
             version_string: Option<String>,
         }
 
-        let data: VcpkgVersions = serde_json::from_str(&text).unwrap_or(VcpkgVersions { versions: vec![] });
-        Ok(data.versions.into_iter().filter_map(|v| {
-            v.version_semver.or(v.version).or(v.version_string)
-        }).collect())
+        let data: VcpkgVersions =
+            serde_json::from_str(&text).unwrap_or(VcpkgVersions { versions: vec![] });
+        Ok(data
+            .versions
+            .into_iter()
+            .filter_map(|v| v.version_semver.or(v.version).or(v.version_string))
+            .collect())
     }
 }
 
@@ -125,7 +142,8 @@ impl Registry for VcpkgRegistry {
         self.ensure_index()?;
         let baseline = self.fetch_baseline().await?;
 
-        let results: Vec<PackageInfo> = baseline.default
+        let results: Vec<PackageInfo> = baseline
+            .default
             .iter()
             .filter(|(name, _)| name.contains(query))
             .map(|(name, entry)| PackageInfo {
@@ -147,11 +165,15 @@ impl Registry for VcpkgRegistry {
 
     async fn resolve(&self, name: &str, _version_req: &str) -> Result<PackageInfo> {
         self.ensure_index()?;
-        let baseline = self.fetch_baseline().await.context("Failed to load vcpkg baseline")?;
+        let baseline = self
+            .fetch_baseline()
+            .await
+            .context("Failed to load vcpkg baseline")?;
 
-        let entry = baseline.default.get(name).ok_or_else(|| {
-            anyhow::anyhow!("Package '{}' not found in vcpkg registry", name)
-        })?;
+        let entry = baseline
+            .default
+            .get(name)
+            .ok_or_else(|| anyhow::anyhow!("Package '{}' not found in vcpkg registry", name))?;
 
         Ok(PackageInfo {
             name: name.to_string(),
@@ -173,13 +195,24 @@ impl Registry for VcpkgRegistry {
         // The portfile specifies the upstream source tarball.
         // We fetch the portfile to get the archive URL, then download it.
 
-        let _first_char = info.name.chars().next().unwrap_or('a').to_lowercase().next().unwrap();
+        let _first_char = info
+            .name
+            .chars()
+            .next()
+            .unwrap_or('a')
+            .to_lowercase()
+            .next()
+            .unwrap();
         let portfile_url = format!(
             "https://raw.githubusercontent.com/microsoft/vcpkg/master/ports/{}/portfile.cmake",
             info.name
         );
 
-        let portfile_resp = self.client.get(&portfile_url).send().await
+        let portfile_resp = self
+            .client
+            .get(&portfile_url)
+            .send()
+            .await
             .with_context(|| format!("Failed to fetch portfile for {}", info.name))?;
 
         if !portfile_resp.status().is_success() {
@@ -189,10 +222,18 @@ impl Registry for VcpkgRegistry {
         let portfile = portfile_resp.text().await?;
 
         // Extract the URL and SHA512 from the portfile
-        let archive_url = extract_cmake_arg(&portfile, "URL")
-            .ok_or_else(|| anyhow::anyhow!("Could not find archive URL in vcpkg portfile for {}", info.name))?;
+        let archive_url = extract_cmake_arg(&portfile, "URL").ok_or_else(|| {
+            anyhow::anyhow!(
+                "Could not find archive URL in vcpkg portfile for {}",
+                info.name
+            )
+        })?;
 
-        let resp = self.client.get(&archive_url).send().await
+        let resp = self
+            .client
+            .get(&archive_url)
+            .send()
+            .await
             .with_context(|| format!("Failed to download vcpkg package {}", info.name))?;
         let bytes = resp.bytes().await?.to_vec();
 
@@ -211,7 +252,8 @@ impl Registry for VcpkgRegistry {
 /// Extract a CMake function argument value from portfile content
 fn extract_cmake_arg(content: &str, arg: &str) -> Option<String> {
     let pattern = format!("{} ", arg);
-    content.lines()
+    content
+        .lines()
         .find(|l| l.trim().starts_with(&pattern))?
         .trim()
         .strip_prefix(&pattern)?

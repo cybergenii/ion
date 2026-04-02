@@ -41,9 +41,9 @@ pub fn normalize_version_req(input: &str) -> String {
     // Count dots to determine precision
     let dot_count = input.chars().filter(|&c| c == '.').count();
     match dot_count {
-        0 => format!("^{}.0.0", input),    // "10" → "^10.0.0"
-        1 => format!("^{}.0", input),      // "10.2" → "^10.2.0"
-        _ => input.to_string(),           // "10.2.1" → use as-is (semver crate handles it)
+        0 => format!("^{}.0.0", input), // "10" → "^10.0.0"
+        1 => format!("^{}.0", input),   // "10.2" → "^10.2.0"
+        _ => input.to_string(),         // "10.2.1" → use as-is (semver crate handles it)
     }
 }
 

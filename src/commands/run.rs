@@ -12,7 +12,11 @@ pub fn execute(args: &[String], release: bool) -> Result<()> {
 
     let manifest = Manifest::from_dir(&cwd).context("Failed to load ion.toml")?;
 
-    let build_type = if release { BuildType::Release } else { BuildType::Debug };
+    let build_type = if release {
+        BuildType::Release
+    } else {
+        BuildType::Debug
+    };
 
     // Build first
     let binary_path = build_in_dir(&cwd, build_type)?;
@@ -31,8 +35,16 @@ pub fn execute(args: &[String], release: bool) -> Result<()> {
     println!(
         "\n{} {}{}",
         "Running".green().bold(),
-        executable.file_name().unwrap_or_default().to_string_lossy().cyan(),
-        if args.is_empty() { String::new() } else { format!(" {}", args.join(" ")).dimmed().to_string() }
+        executable
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .cyan(),
+        if args.is_empty() {
+            String::new()
+        } else {
+            format!(" {}", args.join(" ")).dimmed().to_string()
+        }
     );
     println!("{}", "─".repeat(50).dimmed());
 
@@ -40,7 +52,8 @@ pub fn execute(args: &[String], release: bool) -> Result<()> {
     cmd.args(args);
     cmd.current_dir(&cwd);
 
-    let status = cmd.status()
+    let status = cmd
+        .status()
         .with_context(|| format!("Failed to execute {}", executable.display()))?;
 
     println!("{}", "─".repeat(50).dimmed());

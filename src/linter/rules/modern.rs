@@ -129,7 +129,9 @@ pub fn check_index_for_loop(file: &Path, content: &str) -> Vec<Diagnostic> {
                 line: (idx + 1) as u32,
                 column: 1,
                 span: None,
-                suggestion: Some("Use `for (auto& item : container)` when index not required".to_string()),
+                suggestion: Some(
+                    "Use `for (auto& item : container)` when index not required".to_string(),
+                ),
                 fix: None,
                 note: None,
             })

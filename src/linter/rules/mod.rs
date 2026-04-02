@@ -53,10 +53,16 @@ pub fn describe_rule(id: &str) -> &'static str {
         "memory/leak" => "Raw heap allocation that may not be released on all paths",
         "memory/double-free" => "Repeated release call on the same allocation",
         "memory/use-after-free" => "Variable appears used after memory was released",
-        "memory/smart-get" => "Storing or exposing `.get()` from a smart pointer can outlive the owner",
-        "memory/raw-from-smart" => "Raw pointer taken from a smart pointer; ensure lifetime is bounded",
+        "memory/smart-get" => {
+            "Storing or exposing `.get()` from a smart pointer can outlive the owner"
+        }
+        "memory/raw-from-smart" => {
+            "Raw pointer taken from a smart pointer; ensure lifetime is bounded"
+        }
         "memory/move-after-use" => "Variable used after `std::move` may be in a moved-from state",
-        "memory/shared-cycle-hint" => "Multiple `shared_ptr` members may form reference cycles; consider `weak_ptr`",
+        "memory/shared-cycle-hint" => {
+            "Multiple `shared_ptr` members may form reference cycles; consider `weak_ptr`"
+        }
         "null/deref" => "Pointer dereference without a preceding null check",
         "resource/leak" => "Resource opened but not clearly closed",
         "modern/nullptr" => "Prefer `nullptr` over legacy `NULL`",

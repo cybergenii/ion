@@ -2,7 +2,9 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use super::{DownloadResult, DependencySpec, PackageCache, PackageDependency, PackageInfo, Registry};
+use super::{
+    DependencySpec, DownloadResult, PackageCache, PackageDependency, PackageInfo, Registry,
+};
 
 /// Ion native registry client.
 /// Communicates with https://registry.ion-cpp.dev (sparse index format).
@@ -200,7 +202,11 @@ impl Registry for IonRegistry {
             (entry.tarball.clone(), entry.checksum.clone())
         };
 
-        let resp = self.client.get(&tarball_url).send().await
+        let resp = self
+            .client
+            .get(&tarball_url)
+            .send()
+            .await
             .with_context(|| format!("Failed to download {}@{}", info.name, info.version))?;
         let bytes = resp.bytes().await?.to_vec();
 

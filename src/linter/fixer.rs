@@ -11,7 +11,10 @@ impl Fixer {
         let mut grouped: HashMap<PathBuf, Vec<(&'static str, Fix)>> = HashMap::new();
         for d in diagnostics {
             if let Some(fix) = d.fix.clone() {
-                grouped.entry(d.file.clone()).or_default().push((d.rule, fix));
+                grouped
+                    .entry(d.file.clone())
+                    .or_default()
+                    .push((d.rule, fix));
             }
         }
         for (file, mut fixes) in grouped {

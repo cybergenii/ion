@@ -17,7 +17,12 @@ impl Rule for NullDerefRule {
         "Pointer dereference without nearby null guard"
     }
 
-    fn check(&self, ctx: &SemanticContext, entity: &Entity, _parent: &Entity) -> Option<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &SemanticContext,
+        entity: &Entity,
+        _parent: &Entity,
+    ) -> Option<Diagnostic> {
         if entity.get_kind() != EntityKind::UnaryOperator {
             return None;
         }

@@ -24,7 +24,11 @@ impl LintEngine {
         self.enabled
     }
 
-    pub fn analyze_file(&self, file: &Path, filter_rules: Option<&[String]>) -> Result<Vec<Diagnostic>> {
+    pub fn analyze_file(
+        &self,
+        file: &Path,
+        filter_rules: Option<&[String]>,
+    ) -> Result<Vec<Diagnostic>> {
         let source = fs::read_to_string(file)?;
         self.analyze_file_with_source(file, &source, filter_rules)
     }
@@ -74,9 +78,7 @@ impl LintEngine {
             SemanticContext {
                 file: ctx.file,
                 source: ctx.source,
-                enclosing_function: entity
-                    .get_name()
-                    .or_else(|| entity.get_display_name()),
+                enclosing_function: entity.get_name().or_else(|| entity.get_display_name()),
             }
         } else {
             SemanticContext {
@@ -143,7 +145,12 @@ pub(crate) fn compile_args_for(file: &Path) -> Vec<String> {
         return normalize_args(args);
     }
     if let Some(command) = &cmd.command {
-        return normalize_args(&command.split_whitespace().map(ToOwned::to_owned).collect::<Vec<_>>());
+        return normalize_args(
+            &command
+                .split_whitespace()
+                .map(ToOwned::to_owned)
+                .collect::<Vec<_>>(),
+        );
     }
     Vec::new()
 }

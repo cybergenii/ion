@@ -55,7 +55,11 @@ impl Linter {
             .collect()
     }
 
-    pub fn run_on_files(&self, files: &[PathBuf], filter_rules: Option<&[String]>) -> Result<Vec<Diagnostic>> {
+    pub fn run_on_files(
+        &self,
+        files: &[PathBuf],
+        filter_rules: Option<&[String]>,
+    ) -> Result<Vec<Diagnostic>> {
         let diagnostics = files
             .par_iter()
             .map(|file| self.analyze_one(file, filter_rules, None))
@@ -117,7 +121,10 @@ impl Linter {
         out.extend(dataflow::quick_dataflow_checks(file, source_ref));
         out.extend(smart_ptr::smart_ptr_checks(file, source_ref));
         if self.engine.semantic_available() {
-            out.extend(self.engine.analyze_file_with_source(file, source_ref, filter_rules)?);
+            out.extend(
+                self.engine
+                    .analyze_file_with_source(file, source_ref, filter_rules)?,
+            );
         }
         if let Some(ids) = filter_rules {
             out.retain(|d| ids.iter().any(|r| r.as_str() == d.rule));

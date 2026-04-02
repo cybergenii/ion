@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 
-use super::{DownloadResult, DependencySpec, PackageCache, PackageInfo, Registry};
+use super::{DependencySpec, DownloadResult, PackageCache, PackageInfo, Registry};
 
 /// Local filesystem adapter.
 /// Resolves packages from a local path (e.g. for monorepo development or path overrides).
@@ -21,8 +21,8 @@ impl LocalRegistry {
         if manifest_path.exists() {
             let content = std::fs::read_to_string(&manifest_path)
                 .with_context(|| format!("Failed to read ion.toml at {}", path.display()))?;
-            let manifest: crate::manifest::Manifest = toml::from_str(&content)
-                .with_context(|| "Failed to parse local ion.toml")?;
+            let manifest: crate::manifest::Manifest =
+                toml::from_str(&content).with_context(|| "Failed to parse local ion.toml")?;
 
             Ok(PackageInfo {
                 name: manifest.package.name.clone(),
@@ -32,7 +32,10 @@ impl LocalRegistry {
                 description: manifest.package.description.clone(),
                 homepage: manifest.package.repository.clone(),
                 license: manifest.package.license.clone(),
-                cmake_targets: vec![format!("{}::{}", manifest.package.name, manifest.package.name)],
+                cmake_targets: vec![format!(
+                    "{}::{}",
+                    manifest.package.name, manifest.package.name
+                )],
                 dependencies: manifest
                     .dependencies
                     .iter()

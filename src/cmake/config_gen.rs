@@ -14,8 +14,7 @@ pub fn generate_config_file(
     download: &DownloadResult,
     cmake_dir: &Path,
 ) -> Result<PathBuf> {
-    std::fs::create_dir_all(cmake_dir)
-        .context("Failed to create Ion CMake directory")?;
+    std::fs::create_dir_all(cmake_dir).context("Failed to create Ion CMake directory")?;
 
     // Check if the package ships its own CMake config files
     let shipped_config = find_shipped_cmake_config(&download.extracted_path, &pkg.name);

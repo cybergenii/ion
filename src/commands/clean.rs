@@ -11,8 +11,7 @@ pub fn execute(all: bool) -> Result<()> {
     // Remove build directory
     let build_dir = cwd.join("build");
     if build_dir.exists() {
-        std::fs::remove_dir_all(&build_dir)
-            .context("Failed to remove build directory")?;
+        std::fs::remove_dir_all(&build_dir).context("Failed to remove build directory")?;
         println!("  {} Removed {}", "✓".green(), "build/".dimmed());
     } else {
         println!("  {} No build directory found.", "→".cyan());
@@ -22,8 +21,7 @@ pub fn execute(all: bool) -> Result<()> {
         // Remove .ion/ local cache (Ion-managed CMake configs local to project)
         let ion_dir = cwd.join(".ion");
         if ion_dir.exists() {
-            std::fs::remove_dir_all(&ion_dir)
-                .context("Failed to remove .ion directory")?;
+            std::fs::remove_dir_all(&ion_dir).context("Failed to remove .ion directory")?;
             println!("  {} Removed {}", "✓".green(), ".ion/".dimmed());
         }
 

@@ -6,7 +6,10 @@ pub struct MemoryLeakRule;
 pub struct DoubleFreeRule;
 
 pub fn detect_memory_leak_line(line: &str) -> bool {
-    line.contains("malloc(") || line.contains("calloc(") || line.contains("realloc(") || line.contains("new ")
+    line.contains("malloc(")
+        || line.contains("calloc(")
+        || line.contains("realloc(")
+        || line.contains("new ")
 }
 
 pub fn detect_double_free(source: &str, var: &str) -> bool {
@@ -43,7 +46,12 @@ impl Rule for MemoryLeakRule {
         "Raw heap allocation that can leak when not guarded by RAII"
     }
 
-    fn check(&self, ctx: &SemanticContext, entity: &Entity, _parent: &Entity) -> Option<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &SemanticContext,
+        entity: &Entity,
+        _parent: &Entity,
+    ) -> Option<Diagnostic> {
         if entity.get_kind() != EntityKind::CallExpr {
             return None;
         }
@@ -103,10 +111,7 @@ mod tests {
 
     #[test]
     fn variable_from_free_display_parses() {
-        assert_eq!(
-            variable_from_free_display("free(p)").as_deref(),
-            Some("p")
-        );
+        assert_eq!(variable_from_free_display("free(p)").as_deref(), Some("p"));
     }
 }
 
@@ -119,7 +124,12 @@ impl Rule for DoubleFreeRule {
         "Repeated free/delete on the same variable in this translation unit"
     }
 
-    fn check(&self, ctx: &SemanticContext, entity: &Entity, _parent: &Entity) -> Option<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &SemanticContext,
+        entity: &Entity,
+        _parent: &Entity,
+    ) -> Option<Diagnostic> {
         if entity.get_kind() != EntityKind::CallExpr {
             return None;
         }
@@ -144,7 +154,9 @@ impl Rule for DoubleFreeRule {
             span: None,
             suggestion: Some("Ensure each allocation is freed exactly once".to_string()),
             fix: None,
-            note: Some("Matched multiple free/delete sites for the same variable in this file".to_string()),
+            note: Some(
+                "Matched multiple free/delete sites for the same variable in this file".to_string(),
+            ),
         })
     }
 }

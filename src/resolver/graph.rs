@@ -42,9 +42,7 @@ impl DependencyGraph {
             for dep in deps {
                 if self.nodes.contains_key(dep.as_str()) {
                     *in_degree.entry(name.as_str()).or_insert(0) += 1;
-                    adj.entry(dep.as_str())
-                        .or_default()
-                        .push(name.as_str());
+                    adj.entry(dep.as_str()).or_default().push(name.as_str());
                 }
             }
         }
@@ -157,7 +155,10 @@ mod tests {
 
         let result = g.topological_sort();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Circular dependency"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Circular dependency"));
     }
 
     #[test]

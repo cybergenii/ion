@@ -2,6 +2,9 @@ use crate::linter::diagnostic::Diagnostic;
 use crate::linter::rules::describe_rule;
 use crate::linter::Linter;
 use crate::lsp::convert::{ranges_overlap, to_lsp_diagnostic, to_lsp_range, to_workspace_edit};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
     CodeActionOrCommand, CodeActionParams, CodeActionResponse, DiagnosticOptions,
     DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
@@ -9,9 +12,6 @@ use tower_lsp::lsp_types::{
     HoverParams, InitializeParams, InitializeResult, MessageType, OneOf, ServerCapabilities,
     TextDocumentSyncCapability, TextDocumentSyncKind, Url,
 };
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use tower_lsp::jsonrpc::Result;
 use tower_lsp::{Client, LanguageServer};
 
 pub struct IonLspServer {
@@ -37,11 +37,7 @@ impl IonLspServer {
             Ok(p) => p,
             Err(_) => return Vec::new(),
         };
-        let text = self
-            .documents
-            .lock()
-            .ok()
-            .and_then(|m| m.get(uri).cloned());
+        let text = self.documents.lock().ok().and_then(|m| m.get(uri).cloned());
         match text {
             Some(t) => self
                 .linter
@@ -65,14 +61,18 @@ impl LanguageServer for IonLspServer {
                     TextDocumentSyncKind::FULL,
                 )),
                 diagnostic_provider: Some(
-                    tower_lsp::lsp_types::DiagnosticServerCapabilities::Options(DiagnosticOptions {
-                        identifier: Some("ion".to_string()),
-                        inter_file_dependencies: false,
-                        workspace_diagnostics: false,
-                        work_done_progress_options: Default::default(),
-                    }),
+                    tower_lsp::lsp_types::DiagnosticServerCapabilities::Options(
+                        DiagnosticOptions {
+                            identifier: Some("ion".to_string()),
+                            inter_file_dependencies: false,
+                            workspace_diagnostics: false,
+                            work_done_progress_options: Default::default(),
+                        },
+                    ),
                 ),
-                code_action_provider: Some(tower_lsp::lsp_types::CodeActionProviderCapability::Simple(true)),
+                code_action_provider: Some(
+                    tower_lsp::lsp_types::CodeActionProviderCapability::Simple(true),
+                ),
                 hover_provider: Some(tower_lsp::lsp_types::HoverProviderCapability::Simple(true)),
                 definition_provider: Some(OneOf::Left(true)),
                 ..Default::default()
@@ -93,7 +93,9 @@ impl LanguageServer for IonLspServer {
         }
         let diagnostics = self.analyze_uri(&uri).await;
         let lsp_diags = diagnostics.iter().map(to_lsp_diagnostic).collect();
-        self.client.publish_diagnostics(uri.clone(), lsp_diags, None).await;
+        self.client
+            .publish_diagnostics(uri.clone(), lsp_diags, None)
+            .await;
         if let Ok(mut map) = self.last.lock() {
             map.insert(uri, diagnostics);
         }
@@ -110,7 +112,9 @@ impl LanguageServer for IonLspServer {
         }
         let diagnostics = self.analyze_uri(&uri).await;
         let lsp_diags = diagnostics.iter().map(to_lsp_diagnostic).collect();
-        self.client.publish_diagnostics(uri.clone(), lsp_diags, None).await;
+        self.client
+            .publish_diagnostics(uri.clone(), lsp_diags, None)
+            .await;
         if let Ok(mut map) = self.last.lock() {
             map.insert(uri, diagnostics);
         }
@@ -120,7 +124,9 @@ impl LanguageServer for IonLspServer {
         let uri = params.text_document.uri;
         let diagnostics = self.analyze_uri(&uri).await;
         let lsp_diags = diagnostics.iter().map(to_lsp_diagnostic).collect();
-        self.client.publish_diagnostics(uri.clone(), lsp_diags, None).await;
+        self.client
+            .publish_diagnostics(uri.clone(), lsp_diags, None)
+            .await;
         if let Ok(mut map) = self.last.lock() {
             map.insert(uri, diagnostics);
         }
@@ -217,14 +223,14 @@ impl LanguageServer for IonLspServer {
                         && pos.character <= end.saturating_sub(1)
                     {
                         return Ok(Some(Hover {
-                            contents: HoverContents::Scalar(tower_lsp::lsp_types::MarkedString::String(
-                                format!(
+                            contents: HoverContents::Scalar(
+                                tower_lsp::lsp_types::MarkedString::String(format!(
                                     "{}\n{}\n{}\nhttps://github.com/cybergenii/ion",
                                     d.rule,
                                     describe_rule(d.rule),
                                     d.message
-                                ),
-                            )),
+                                )),
+                            ),
                             range: None,
                         }));
                     }

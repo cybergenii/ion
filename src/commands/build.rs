@@ -46,7 +46,11 @@ pub fn execute_in_dir(project_root: &Path, build_type: BuildType) -> Result<Path
 
     // Detect CMake
     let cmake = find_cmake()?;
-    println!("{} {} with CMake...", "Building".green().bold(), build_type.cmake_value().cyan());
+    println!(
+        "{} {} with CMake...",
+        "Building".green().bold(),
+        build_type.cmake_value().cyan()
+    );
 
     // Detect C++ compiler
     let compiler = detect_compiler(&config.build.compiler);
@@ -56,8 +60,7 @@ pub fn execute_in_dir(project_root: &Path, build_type: BuildType) -> Result<Path
 
     // Build directory
     let build_dir = project_root.join("build").join(build_type.dir_name());
-    std::fs::create_dir_all(&build_dir)
-        .context("Failed to create build directory")?;
+    std::fs::create_dir_all(&build_dir).context("Failed to create build directory")?;
 
     // Configure step
     println!("  {} Configuring...", "→".cyan());
@@ -137,7 +140,11 @@ fn find_cmake() -> Result<String> {
     }
 
     // Common install locations
-    for path in ["/usr/bin/cmake", "/usr/local/bin/cmake", "/opt/homebrew/bin/cmake"] {
+    for path in [
+        "/usr/bin/cmake",
+        "/usr/local/bin/cmake",
+        "/opt/homebrew/bin/cmake",
+    ] {
         if std::path::Path::new(path).exists() {
             return Ok(path.to_string());
         }
@@ -205,9 +212,7 @@ fn find_binary(build_dir: &Path, name: &str) -> Option<PathBuf> {
         .filter_map(|e| e.ok())
         .find(|e| {
             let p = e.path();
-            p.file_stem().and_then(|s| s.to_str()) == Some(name)
-                && p.is_file()
-                && is_executable(p)
+            p.file_stem().and_then(|s| s.to_str()) == Some(name) && p.is_file() && is_executable(p)
         })
         .map(|e| e.into_path())
 }

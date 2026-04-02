@@ -2,32 +2,33 @@
 #![allow(dead_code)]
 #![allow(clippy::large_enum_variant)]
 
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::*;
-use anyhow::Result;
 
+mod analysis;
+mod cmake;
 mod commands;
 mod config;
-mod manifest;
+mod linter;
 mod lockfile;
+mod lsp;
+mod manifest;
 mod registry;
 mod resolver;
-mod cmake;
-mod linter;
-mod analysis;
-mod lsp;
 
-use commands::{new, init, add, remove, install, update, build, run, test, clean, outdated, tree, check, lsp as lsp_cmd};
 use build::BuildType;
+use commands::{
+    add, build, check, clean, init, install, lsp as lsp_cmd, new, outdated, remove, run, test,
+    tree, update,
+};
 
 #[derive(Parser)]
 #[command(name = "ion")]
 #[command(version = "0.3.0")]
 #[command(about = "Modern C++ package manager", long_about = None)]
 #[command(author = "Ion Contributors")]
-#[command(
-    after_help = "Examples:\n  ion new my-app\n  ion add fmtlib/fmt\n  ion build\n  ion run"
-)]
+#[command(after_help = "Examples:\n  ion new my-app\n  ion add fmtlib/fmt\n  ion build\n  ion run")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -158,7 +159,11 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Commands::New { name, std, template }) => {
+        Some(Commands::New {
+            name,
+            std,
+            template,
+        }) => {
             new::execute(&name, &std, &template)?;
         }
         Some(Commands::Init { std }) => {
@@ -179,7 +184,11 @@ async fn main() -> Result<()> {
         }
 
         Some(Commands::Build { release }) => {
-            let t = if release { BuildType::Release } else { BuildType::Debug };
+            let t = if release {
+                BuildType::Release
+            } else {
+                BuildType::Debug
+            };
             build::execute(t)?;
         }
         Some(Commands::Run { release, args }) => {
@@ -206,15 +215,7 @@ async fn main() -> Result<()> {
             list_rules,
             no_color,
         }) => {
-            check::execute(
-                fix,
-                watch,
-                &format,
-                rule,
-                list_rules,
-                no_color,
-            )
-            .await?;
+            check::execute(fix, watch, &format, rule, list_rules, no_color).await?;
         }
         Some(Commands::Lsp) => {
             lsp_cmd::run().await?;

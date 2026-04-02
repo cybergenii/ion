@@ -99,7 +99,12 @@ fn check_move_after_use(file: &Path, source: &str) -> Vec<Diagnostic> {
             .map(str::trim)
             .filter(|s| !s.is_empty());
         let Some(var) = var else { continue };
-        for (j, next) in lines.iter().enumerate().take(lines.len().min(i + 12)).skip(i + 1) {
+        for (j, next) in lines
+            .iter()
+            .enumerate()
+            .take(lines.len().min(i + 12))
+            .skip(i + 1)
+        {
             let next = *next;
             if next.trim_start().starts_with("//") {
                 continue;
@@ -117,7 +122,10 @@ fn check_move_after_use(file: &Path, source: &str) -> Vec<Diagnostic> {
                     line: line_no,
                     column: col,
                     span: None,
-                    suggestion: Some("Avoid using the moved-from object unless it is documented as safe".to_string()),
+                    suggestion: Some(
+                        "Avoid using the moved-from object unless it is documented as safe"
+                            .to_string(),
+                    ),
                     fix: None,
                     note: Some("Heuristic: verify move semantics for this type".to_string()),
                 });

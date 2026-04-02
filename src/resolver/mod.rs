@@ -38,7 +38,10 @@ pub async fn resolve(
             let manifest_str = toml::to_string(manifest).unwrap_or_default();
             let current_hash = hash_manifest(&manifest_str);
             if lock.is_fresh(&current_hash) {
-                println!("{}", "  Lockfile is up to date, using cached resolution.".dimmed());
+                println!(
+                    "{}",
+                    "  Lockfile is up to date, using cached resolution.".dimmed()
+                );
                 return Ok(ResolvedGraph {
                     packages: lock
                         .packages
@@ -101,7 +104,9 @@ pub async fn resolve(
                     anyhow::bail!(
                         "Dependency conflict: '{}' is required at both version '{}' and '{}'. \
                          Specify an explicit version in ion.toml to resolve this.",
-                        info.name, existing.version, info.version
+                        info.name,
+                        existing.version,
+                        info.version
                     );
                 }
             } else {

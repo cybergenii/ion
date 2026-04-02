@@ -14,9 +14,8 @@ pub struct PackageCache {
 impl PackageCache {
     pub fn new(cache_dir: &Path) -> Result<Self> {
         let root = cache_dir.to_path_buf();
-        fs::create_dir_all(&root).with_context(|| {
-            format!("Failed to create cache directory: {}", root.display())
-        })?;
+        fs::create_dir_all(&root)
+            .with_context(|| format!("Failed to create cache directory: {}", root.display()))?;
         Ok(Self { root })
     }
 
@@ -68,7 +67,10 @@ impl PackageCache {
             if checksum != expected {
                 anyhow::bail!(
                     "Checksum mismatch for {}@{}: expected {}, got {}",
-                    info.name, info.version, expected, checksum
+                    info.name,
+                    info.version,
+                    expected,
+                    checksum
                 );
             }
         }
@@ -87,7 +89,10 @@ impl PackageCache {
             source: info.source_uri.clone(),
             checksum: checksum.clone(),
         };
-        fs::write(pkg_dir.join("meta.json"), serde_json::to_string_pretty(&meta)?)?;
+        fs::write(
+            pkg_dir.join("meta.json"),
+            serde_json::to_string_pretty(&meta)?,
+        )?;
 
         let include_dirs = find_include_dirs(&src_dir);
         let lib_files = find_lib_files(&src_dir);
@@ -120,7 +125,10 @@ impl PackageCache {
             if checksum != expected {
                 anyhow::bail!(
                     "Checksum mismatch for {}@{}: expected {}, got {}",
-                    info.name, info.version, expected, checksum
+                    info.name,
+                    info.version,
+                    expected,
+                    checksum
                 );
             }
         }
@@ -135,7 +143,10 @@ impl PackageCache {
             source: info.source_uri.clone(),
             checksum: checksum.clone(),
         };
-        fs::write(pkg_dir.join("meta.json"), serde_json::to_string_pretty(&meta)?)?;
+        fs::write(
+            pkg_dir.join("meta.json"),
+            serde_json::to_string_pretty(&meta)?,
+        )?;
 
         let include_dirs = find_include_dirs(&src_dir);
         let lib_files = find_lib_files(&src_dir);

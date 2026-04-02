@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
 
-use super::{DownloadResult, DependencySpec, PackageCache, PackageInfo, Registry};
+use super::{DependencySpec, DownloadResult, PackageCache, PackageInfo, Registry};
 
 /// GitHub Releases registry adapter.
 /// Resolves packages from GitHub repos using the Releases API.
@@ -18,10 +18,7 @@ impl GitHubRegistry {
             reqwest::header::ACCEPT,
             "application/vnd.github+json".parse().unwrap(),
         );
-        headers.insert(
-            "X-GitHub-Api-Version",
-            "2022-11-28".parse().unwrap(),
-        );
+        headers.insert("X-GitHub-Api-Version", "2022-11-28".parse().unwrap());
         if let Some(tok) = token {
             if let Ok(val) = format!("Bearer {}", tok).parse() {
                 headers.insert(reqwest::header::AUTHORIZATION, val);
@@ -40,7 +37,8 @@ impl GitHubRegistry {
     /// Parse `https://github.com/owner/repo` → ("owner", "repo")
     fn parse_github_url(url: &str) -> Option<(&str, &str)> {
         let url = url.trim_end_matches('/');
-        let url = url.strip_prefix("https://github.com/")
+        let url = url
+            .strip_prefix("https://github.com/")
             .or_else(|| url.strip_prefix("http://github.com/"))
             .or_else(|| url.strip_prefix("github.com/"))?;
         let mut parts = url.splitn(2, '/');
@@ -51,8 +49,10 @@ impl GitHubRegistry {
 
     async fn list_releases(&self, owner: &str, repo: &str) -> Result<Vec<GitHubRelease>> {
         let url = format!("https://api.github.com/repos/{}/{}/releases", owner, repo);
-        let resp = self.client.get(&url).send().await
-            .with_context(|| format!("Failed to query GitHub releases for {}/{}", owner, repo))?;
+        let resp =
+            self.client.get(&url).send().await.with_context(|| {
+                format!("Failed to query GitHub releases for {}/{}", owner, repo)
+            })?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             anyhow::bail!("GitHub repo {}/{} not found", owner, repo);
@@ -61,7 +61,9 @@ impl GitHubRegistry {
             anyhow::bail!("GitHub API rate limit exceeded. Set GITHUB_TOKEN to increase limits.");
         }
 
-        let releases: Vec<GitHubRelease> = resp.json().await
+        let releases: Vec<GitHubRelease> = resp
+            .json()
+            .await
             .with_context(|| "Failed to parse GitHub releases response")?;
         Ok(releases)
     }
@@ -83,7 +85,11 @@ impl GitHubRegistry {
             source_uri: format!("github+https://github.com/{}/{}", owner, repo),
             description: release.body.clone().map(|b| {
                 // Truncate long release notes
-                if b.len() > 200 { format!("{}...", &b[..200]) } else { b }
+                if b.len() > 200 {
+                    format!("{}...", &b[..200])
+                } else {
+                    b
+                }
             }),
             homepage: Some(format!("https://github.com/{}/{}", owner, repo)),
             license: None,
@@ -138,21 +144,25 @@ impl Registry for GitHubRegistry {
         }
 
         let result: SearchResult = resp.json().await.unwrap_or(SearchResult { items: vec![] });
-        Ok(result.items.into_iter().map(|r| {
-            let (_owner, _repo) = r.full_name.split_once('/').unwrap_or(("", &r.full_name));
-            PackageInfo {
-                name: r.name.clone(),
-                version: "latest".to_string(),
-                source: "github".to_string(),
-                source_uri: format!("github+https://github.com/{}", r.full_name),
-                description: r.description,
-                homepage: Some(format!("https://github.com/{}", r.full_name)),
-                license: None,
-                cmake_targets: infer_cmake_targets(&r.name),
-                dependencies: vec![],
-                features: vec![],
-            }
-        }).collect())
+        Ok(result
+            .items
+            .into_iter()
+            .map(|r| {
+                let (_owner, _repo) = r.full_name.split_once('/').unwrap_or(("", &r.full_name));
+                PackageInfo {
+                    name: r.name.clone(),
+                    version: "latest".to_string(),
+                    source: "github".to_string(),
+                    source_uri: format!("github+https://github.com/{}", r.full_name),
+                    description: r.description,
+                    homepage: Some(format!("https://github.com/{}", r.full_name)),
+                    license: None,
+                    cmake_targets: infer_cmake_targets(&r.name),
+                    dependencies: vec![],
+                    features: vec![],
+                }
+            })
+            .collect())
     }
 
     async fn resolve(&self, name: &str, version_req: &str) -> Result<PackageInfo> {
@@ -199,7 +209,12 @@ impl Registry for GitHubRegistry {
 
         // Fall back to first release if no semver match
         let release = best.or_else(|| stable.first().copied()).ok_or_else(|| {
-            anyhow::anyhow!("No matching release for github:{}/{} @ {}", owner, repo, version_req)
+            anyhow::anyhow!(
+                "No matching release for github:{}/{} @ {}",
+                owner,
+                repo,
+                version_req
+            )
         })?;
 
         Ok(self.release_to_package_info(name, &owner, &repo, release))
@@ -207,7 +222,8 @@ impl Registry for GitHubRegistry {
 
     async fn download(&self, info: &PackageInfo, cache: &PackageCache) -> Result<DownloadResult> {
         // Extract owner/repo from source_uri
-        let repo_url = info.source_uri
+        let repo_url = info
+            .source_uri
             .strip_prefix("github+")
             .unwrap_or(&info.source_uri);
         let (owner, repo) = Self::parse_github_url(repo_url)
@@ -216,16 +232,25 @@ impl Registry for GitHubRegistry {
         let releases = self.list_releases(owner, repo).await?;
         let release = releases
             .iter()
-            .find(|r| r.tag_name.trim_start_matches('v') == info.version
-                || r.tag_name == info.version)
-            .ok_or_else(|| anyhow::anyhow!("Release {} not found for {}", info.version, info.name))?;
+            .find(|r| {
+                r.tag_name.trim_start_matches('v') == info.version || r.tag_name == info.version
+            })
+            .ok_or_else(|| {
+                anyhow::anyhow!("Release {} not found for {}", info.version, info.name)
+            })?;
 
         // Prefer tarball over zipball
-        let download_url = release.tarball_url.as_deref()
+        let download_url = release
+            .tarball_url
+            .as_deref()
             .or(release.zipball_url.as_deref())
             .ok_or_else(|| anyhow::anyhow!("No download URL for release {}", info.version))?;
 
-        let resp = self.client.get(download_url).send().await
+        let resp = self
+            .client
+            .get(download_url)
+            .send()
+            .await
             .with_context(|| format!("Failed to download {}@{}", info.name, info.version))?;
         let bytes = resp.bytes().await?.to_vec();
 
@@ -238,9 +263,7 @@ impl Registry for GitHubRegistry {
 
     fn can_handle(&self, spec: &DependencySpec) -> bool {
         match spec {
-            DependencySpec::Git { url, .. } => {
-                url.contains("github.com")
-            }
+            DependencySpec::Git { url, .. } => url.contains("github.com"),
             _ => false,
         }
     }
@@ -252,7 +275,10 @@ fn infer_cmake_targets(name: &str) -> Vec<String> {
     match name.to_lowercase().as_str() {
         "fmt" => vec!["fmt::fmt".to_string(), "fmt::fmt-header-only".to_string()],
         "spdlog" => vec!["spdlog::spdlog".to_string()],
-        "catch2" => vec!["Catch2::Catch2".to_string(), "Catch2::Catch2WithMain".to_string()],
+        "catch2" => vec![
+            "Catch2::Catch2".to_string(),
+            "Catch2::Catch2WithMain".to_string(),
+        ],
         "boost" => vec!["Boost::boost".to_string()],
         "nlohmann_json" | "nlohmann-json" | "json" => {
             vec!["nlohmann_json::nlohmann_json".to_string()]
@@ -284,5 +310,6 @@ fn common_owner_for(name: &str) -> String {
         "sqlite3" => "sqlite",
         "openssl" => "openssl",
         _ => name,
-    }.to_string()
+    }
+    .to_string()
 }

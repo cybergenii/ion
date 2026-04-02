@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use super::{DownloadResult, DependencySpec, GitRev, PackageCache, PackageInfo, Registry};
+use super::{DependencySpec, DownloadResult, GitRev, PackageCache, PackageInfo, Registry};
 
 /// Arbitrary Git repository adapter.
 /// Supports any git URL (GitHub, GitLab, Gitea, Bitbucket, self-hosted, etc.)
@@ -16,8 +16,7 @@ pub struct GitRegistry {
 impl GitRegistry {
     pub fn new(cache_dir: &Path) -> Result<Self> {
         let clone_dir = cache_dir.join("git-repos");
-        std::fs::create_dir_all(&clone_dir)
-            .context("Failed to create git clone directory")?;
+        std::fs::create_dir_all(&clone_dir).context("Failed to create git clone directory")?;
         let client = reqwest::Client::builder()
             .user_agent(concat!("ion/", env!("CARGO_PKG_VERSION")))
             .build()?;
@@ -46,7 +45,12 @@ impl GitRegistry {
         } else {
             // Clone the repository
             let status = Command::new("git")
-                .args(["clone", "--filter=blob:none", url, repo_dir.to_str().unwrap()])
+                .args([
+                    "clone",
+                    "--filter=blob:none",
+                    url,
+                    repo_dir.to_str().unwrap(),
+                ])
                 .status()
                 .with_context(|| format!("Failed to clone git repository: {}", url))?;
 
@@ -133,7 +137,8 @@ impl Registry for GitRegistry {
 
     async fn download(&self, info: &PackageInfo, cache: &PackageCache) -> Result<DownloadResult> {
         // source_uri format: "git+https://example.com/owner/repo#tag"
-        let url = info.source_uri
+        let url = info
+            .source_uri
             .strip_prefix("git+")
             .unwrap_or(&info.source_uri);
         let (url, git_ref) = if let Some((u, r)) = url.split_once('#') {
@@ -192,7 +197,9 @@ pub async fn resolve_git_spec(
         .current_dir(&repo_dir)
         .output()
         .context("Failed to resolve git ref")?;
-    let _commit = String::from_utf8_lossy(&commit_output.stdout).trim().to_string();
+    let _commit = String::from_utf8_lossy(&commit_output.stdout)
+        .trim()
+        .to_string();
 
     Ok(PackageInfo {
         name: name.to_string(),

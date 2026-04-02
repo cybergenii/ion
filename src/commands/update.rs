@@ -21,11 +21,7 @@ pub async fn execute(package: Option<&str>) -> Result<()> {
     let config = Config::load().unwrap_or_default();
 
     if let Some(name) = package {
-        println!(
-            "{} {}...",
-            "Updating".green().bold(),
-            name.cyan()
-        );
+        println!("{} {}...", "Updating".green().bold(), name.cyan());
         if !manifest.has_dependency(name) {
             anyhow::bail!("'{}' is not a dependency of this project.", name);
         }
@@ -34,18 +30,14 @@ pub async fn execute(package: Option<&str>) -> Result<()> {
     }
 
     let existing_lock = Lockfile::load(&cwd)?;
-    let registry = RegistryManager::with_defaults(
-        &config.cache.directory,
-        config.github_token(),
-    )?;
+    let registry = RegistryManager::with_defaults(&config.cache.directory, config.github_token())?;
 
     // Force re-resolution (ignore lockfile)
     let resolved = resolver::resolve(
-        &manifest,
-        &registry,
-        None, // ignore existing lock → force fresh resolution
+        &manifest, &registry, None, // ignore existing lock → force fresh resolution
         true,
-    ).await?;
+    )
+    .await?;
 
     // Compare with existing lock to show what changed
     if let Some(lock) = &existing_lock {

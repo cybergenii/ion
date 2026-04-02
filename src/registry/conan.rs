@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
 
-use super::{DownloadResult, DependencySpec, PackageCache, PackageInfo, Registry};
+use super::{DependencySpec, DownloadResult, PackageCache, PackageInfo, Registry};
 
 /// ConanCenter registry adapter.
 /// Resolves C++ packages from https://conan.io/center using the v2 REST API.
@@ -69,35 +69,48 @@ impl Registry for ConanRegistry {
         }
 
         let result: SearchResp = resp.json().await.unwrap_or(SearchResp { results: vec![] });
-        Ok(result.results.into_iter().map(|p| PackageInfo {
-            version: p.latest.clone().unwrap_or_else(|| "*".to_string()),
-            cmake_targets: infer_cmake_targets_for_conan(&p.name),
-            name: p.name,
-            source: "conan".to_string(),
-            source_uri: "conan+https://conan.io/center".to_string(),
-            description: p.description,
-            homepage: p.homepage,
-            license: p.license,
-            dependencies: vec![],
-            features: vec![],
-        }).collect())
+        Ok(result
+            .results
+            .into_iter()
+            .map(|p| PackageInfo {
+                version: p.latest.clone().unwrap_or_else(|| "*".to_string()),
+                cmake_targets: infer_cmake_targets_for_conan(&p.name),
+                name: p.name,
+                source: "conan".to_string(),
+                source_uri: "conan+https://conan.io/center".to_string(),
+                description: p.description,
+                homepage: p.homepage,
+                license: p.license,
+                dependencies: vec![],
+                features: vec![],
+            })
+            .collect())
     }
 
     async fn resolve(&self, name: &str, version_req: &str) -> Result<PackageInfo> {
         // Fetch package metadata
         let meta_url = format!("https://conan.io/center/api/ui/v1/packages/{}", name);
-        let meta_resp = self.client.get(&meta_url).send().await
+        let meta_resp = self
+            .client
+            .get(&meta_url)
+            .send()
+            .await
             .with_context(|| format!("Failed to query ConanCenter for '{}'", name))?;
 
         if meta_resp.status() == reqwest::StatusCode::NOT_FOUND {
             anyhow::bail!("Package '{}' not found in ConanCenter", name);
         }
 
-        let pkg_info: ConanPackageInfo = meta_resp.json().await
+        let pkg_info: ConanPackageInfo = meta_resp
+            .json()
+            .await
             .with_context(|| "Failed to parse ConanCenter package info")?;
 
         // Fetch available versions
-        let ver_url = format!("https://conan.io/center/api/ui/v1/packages/{}/versions", name);
+        let ver_url = format!(
+            "https://conan.io/center/api/ui/v1/packages/{}/versions",
+            name
+        );
         let ver_resp = self.client.get(&ver_url).send().await?;
         let ver_list: ConanVersionList = ver_resp.json().await.unwrap_or(ConanVersionList {
             versions: pkg_info.latest.iter().cloned().collect(),
@@ -122,9 +135,9 @@ impl Registry for ConanRegistry {
             .max_by_key(|(v, _)| v.clone())
             .map(|(_, v)| v);
 
-        let version = best
-            .or(pkg_info.latest.clone())
-            .ok_or_else(|| anyhow::anyhow!("No version of '{}' satisfies '{}'", name, version_req))?;
+        let version = best.or(pkg_info.latest.clone()).ok_or_else(|| {
+            anyhow::anyhow!("No version of '{}' satisfies '{}'", name, version_req)
+        })?;
 
         Ok(PackageInfo {
             name: name.to_string(),
@@ -148,25 +161,44 @@ impl Registry for ConanRegistry {
             info.name, info.version
         );
 
-        let resp = self.client.get(&url).send().await
-            .with_context(|| format!("Failed to get download info for {}@{}", info.name, info.version))?;
+        let resp = self.client.get(&url).send().await.with_context(|| {
+            format!(
+                "Failed to get download info for {}@{}",
+                info.name, info.version
+            )
+        })?;
 
         if !resp.status().is_success() {
             // Fallback: try GitHub if we know the upstream repo
             anyhow::bail!(
                 "ConanCenter download failed for {}@{}. \
                  Try specifying the git source directly instead.",
-                info.name, info.version
+                info.name,
+                info.version
             );
         }
 
         #[derive(Deserialize)]
-        struct SourceInfo { url: String, checksum: Option<String> }
-        let source_info: SourceInfo = resp.json().await
+        struct SourceInfo {
+            url: String,
+            checksum: Option<String>,
+        }
+        let source_info: SourceInfo = resp
+            .json()
+            .await
             .with_context(|| "Failed to parse ConanCenter source info")?;
 
-        let archive_resp = self.client.get(&source_info.url).send().await
-            .with_context(|| format!("Failed to download archive for {}@{}", info.name, info.version))?;
+        let archive_resp = self
+            .client
+            .get(&source_info.url)
+            .send()
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to download archive for {}@{}",
+                    info.name, info.version
+                )
+            })?;
         let bytes = archive_resp.bytes().await?.to_vec();
 
         let expected = source_info.checksum.as_deref();

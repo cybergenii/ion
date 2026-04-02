@@ -19,17 +19,16 @@ pub async fn execute(name: &str, purge_cache: bool) -> Result<()> {
 
     // Check the dep exists
     if !manifest.has_dependency(name) {
-        anyhow::bail!(
-            "'{}' is not a dependency in this project.",
-            name.yellow()
-        );
+        anyhow::bail!("'{}' is not a dependency in this project.", name.yellow());
     }
 
     // Load lockfile to check for dependents
     if let Some(lock) = Lockfile::load(&cwd)? {
         let mut graph = DependencyGraph::new();
         for pkg in &lock.packages {
-            let deps: Vec<String> = pkg.dependencies.iter()
+            let deps: Vec<String> = pkg
+                .dependencies
+                .iter()
                 .map(|d| d.split_whitespace().next().unwrap_or(d).to_string())
                 .collect();
             graph.add_node(pkg.name.clone(), pkg.version.clone(), deps);
@@ -67,7 +66,9 @@ pub async fn execute(name: &str, purge_cache: bool) -> Result<()> {
         anyhow::bail!("Failed to remove '{}' from manifest", name);
     }
 
-    manifest.save_to_dir(&cwd).context("Failed to save ion.toml")?;
+    manifest
+        .save_to_dir(&cwd)
+        .context("Failed to save ion.toml")?;
     println!("  {} Updated ion.toml", "✓".green());
 
     // Update lockfile
@@ -101,7 +102,11 @@ pub async fn execute(name: &str, purge_cache: bool) -> Result<()> {
                     features: vec![],
                 };
                 cache.evict(&fake_info)?;
-                println!("  {} Removed {} from cache", "✓".green(), entry.version.dimmed());
+                println!(
+                    "  {} Removed {} from cache",
+                    "✓".green(),
+                    entry.version.dimmed()
+                );
             }
         }
 

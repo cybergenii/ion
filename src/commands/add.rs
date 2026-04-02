@@ -57,7 +57,9 @@ pub async fn execute(spec: &str, is_dev: bool) -> Result<()> {
     }
 
     // Save manifest immediately
-    manifest.save_to_dir(&cwd).context("Failed to save ion.toml")?;
+    manifest
+        .save_to_dir(&cwd)
+        .context("Failed to save ion.toml")?;
     println!("  {} Updated ion.toml", "✓".green());
 
     // Run install to fetch and update lockfile
@@ -75,42 +77,65 @@ fn parse_add_spec(spec: &str) -> Result<(String, Dependency)> {
         // "github:fmtlib/fmt" or "github:fmtlib/fmt@10.2.1"
         let (repo, version) = split_at_version(rest);
         let name = repo.split('/').next_back().unwrap_or(repo).to_string();
-        return Ok((name, Dependency::Detailed(DetailedDependency {
-            git: Some(format!("https://github.com/{}", repo)),
-            tag: if version.is_empty() { None } else { Some(ensure_v_prefix(version)) },
-            ..Default::default()
-        })));
+        return Ok((
+            name,
+            Dependency::Detailed(DetailedDependency {
+                git: Some(format!("https://github.com/{}", repo)),
+                tag: if version.is_empty() {
+                    None
+                } else {
+                    Some(ensure_v_prefix(version))
+                },
+                ..Default::default()
+            }),
+        ));
     }
 
     if let Some(rest) = spec.strip_prefix("conan:") {
         // "conan:fmt/10.2.1"
         let name = rest.split('/').next().unwrap_or(rest).to_string();
-        return Ok((name, Dependency::Detailed(DetailedDependency {
-            conan: Some(rest.to_string()),
-            ..Default::default()
-        })));
+        return Ok((
+            name,
+            Dependency::Detailed(DetailedDependency {
+                conan: Some(rest.to_string()),
+                ..Default::default()
+            }),
+        ));
     }
 
     if let Some(rest) = spec.strip_prefix("vcpkg:") {
         // "vcpkg:fmt"
         let (port, _) = split_at_version(rest);
-        return Ok((port.to_string(), Dependency::Detailed(DetailedDependency {
-            vcpkg: Some(port.to_string()),
-            ..Default::default()
-        })));
+        return Ok((
+            port.to_string(),
+            Dependency::Detailed(DetailedDependency {
+                vcpkg: Some(port.to_string()),
+                ..Default::default()
+            }),
+        ));
     }
 
     if let Some(rest) = spec.strip_prefix("git:") {
         // "git:https://gitlab.com/org/repo@branch-or-tag"
         let (url, rev) = split_at_version(rest);
-        let name = url.split('/').next_back().unwrap_or(url)
+        let name = url
+            .split('/')
+            .next_back()
+            .unwrap_or(url)
             .trim_end_matches(".git")
             .to_string();
-        return Ok((name, Dependency::Detailed(DetailedDependency {
-            git: Some(url.to_string()),
-            branch: if rev.is_empty() { None } else { Some(rev.to_string()) },
-            ..Default::default()
-        })));
+        return Ok((
+            name,
+            Dependency::Detailed(DetailedDependency {
+                git: Some(url.to_string()),
+                branch: if rev.is_empty() {
+                    None
+                } else {
+                    Some(rev.to_string())
+                },
+                ..Default::default()
+            }),
+        ));
     }
 
     // Default: Ion registry

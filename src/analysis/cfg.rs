@@ -1,6 +1,6 @@
 use clang::Entity;
-use petgraph::graph::NodeIndex;
 use petgraph::graph::DiGraph;
+use petgraph::graph::NodeIndex;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug)]

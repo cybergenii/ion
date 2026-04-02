@@ -34,14 +34,13 @@ impl CmakeGenerator {
             anyhow::bail!("CMakeLists.txt not found at {}", self.cmake_path.display());
         }
 
-        let content = std::fs::read_to_string(&self.cmake_path)
-            .context("Failed to read CMakeLists.txt")?;
+        let content =
+            std::fs::read_to_string(&self.cmake_path).context("Failed to read CMakeLists.txt")?;
 
         let updated = self.update_deps_block(&content, packages, ion_cmake_dir)?;
         let updated = self.update_links_block(&updated, packages)?;
 
-        std::fs::write(&self.cmake_path, updated)
-            .context("Failed to write CMakeLists.txt")?;
+        std::fs::write(&self.cmake_path, updated).context("Failed to write CMakeLists.txt")?;
 
         Ok(())
     }
@@ -94,7 +93,10 @@ impl CmakeGenerator {
             ION_DEPS_BEGIN.to_string(),
             "# Ion-managed dependencies — do not edit this block manually.".to_string(),
             "# Run `ion install` or `ion add/remove` to update.".to_string(),
-            format!("list(APPEND CMAKE_PREFIX_PATH \"{}\")", ion_cmake_dir.display()),
+            format!(
+                "list(APPEND CMAKE_PREFIX_PATH \"{}\")",
+                ion_cmake_dir.display()
+            ),
             String::new(),
         ];
 
@@ -105,7 +107,10 @@ impl CmakeGenerator {
             lines.push("# Runtime dependencies".to_string());
             for pkg in &runtime_pkgs {
                 let canonical = cmake_canonical_name(&pkg.name);
-                lines.push(format!("find_package({} {} REQUIRED)", canonical, pkg.version));
+                lines.push(format!(
+                    "find_package({} {} REQUIRED)",
+                    canonical, pkg.version
+                ));
             }
         }
 
@@ -169,12 +174,13 @@ impl CmakeGenerator {
 
 /// Replace content between two marker strings
 fn replace_between(content: &str, begin: &str, end: &str, new_block: &str) -> Result<String> {
-    let begin_pos = content.find(begin).ok_or_else(|| {
-        anyhow::anyhow!("Could not find marker '{}' in CMakeLists.txt", begin)
-    })?;
+    let begin_pos = content
+        .find(begin)
+        .ok_or_else(|| anyhow::anyhow!("Could not find marker '{}' in CMakeLists.txt", begin))?;
     let end_pos = content[begin_pos..].find(end).ok_or_else(|| {
         anyhow::anyhow!("Could not find closing marker '{}' in CMakeLists.txt", end)
-    })? + begin_pos + end.len();
+    })? + begin_pos
+        + end.len();
 
     Ok(format!(
         "{}{}\n{}",
@@ -197,7 +203,9 @@ fn find_inject_point_after_project(content: &str) -> usize {
 /// Inject into an existing target_link_libraries block
 fn inject_into_target_link_libraries(content: &str, new_block: &str) -> Option<String> {
     // Find target_link_libraries( ... ) block
-    let re = Regex::new(r"(?s)(target_link_libraries\([^)]*)(PUBLIC|PRIVATE|INTERFACE)(\s*)([^)]*)\)").unwrap();
+    let re =
+        Regex::new(r"(?s)(target_link_libraries\([^)]*)(PUBLIC|PRIVATE|INTERFACE)(\s*)([^)]*)\)")
+            .unwrap();
 
     if let Some(cap) = re.captures(content) {
         let full_match = cap.get(0)?.as_str();

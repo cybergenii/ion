@@ -1,9 +1,9 @@
 use crate::linter::diagnostic::{Diagnostic, Fix, Severity};
+use std::collections::HashMap;
 use tower_lsp::lsp_types::{
     CodeDescription, Diagnostic as LspDiagnostic, DiagnosticRelatedInformation, DiagnosticSeverity,
     Location, NumberOrString, Position, Range, TextEdit, Url, WorkspaceEdit,
 };
-use std::collections::HashMap;
 
 pub fn to_lsp_diagnostic(d: &Diagnostic) -> LspDiagnostic {
     let doc_url = Url::from_file_path(&d.file).ok();

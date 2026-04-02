@@ -170,7 +170,8 @@ impl Manifest {
 
     /// Add a detailed (multi-field) runtime dependency
     pub fn add_detailed_dependency(&mut self, name: &str, dep: DetailedDependency) {
-        self.dependencies.insert(name.to_string(), Dependency::Detailed(dep));
+        self.dependencies
+            .insert(name.to_string(), Dependency::Detailed(dep));
     }
 
     /// Add or update a dev dependency
@@ -241,11 +242,14 @@ mod tests {
     #[test]
     fn test_detailed_dependency() {
         let mut manifest = Manifest::new("test", "20");
-        manifest.add_detailed_dependency("fmt", DetailedDependency {
-            git: Some("https://github.com/fmtlib/fmt".to_string()),
-            tag: Some("10.2.1".to_string()),
-            ..Default::default()
-        });
+        manifest.add_detailed_dependency(
+            "fmt",
+            DetailedDependency {
+                git: Some("https://github.com/fmtlib/fmt".to_string()),
+                tag: Some("10.2.1".to_string()),
+                ..Default::default()
+            },
+        );
         let toml_str = toml::to_string_pretty(&manifest).unwrap();
         assert!(toml_str.contains("fmtlib/fmt"));
     }

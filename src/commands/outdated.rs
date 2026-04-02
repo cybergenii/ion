@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use colored::*;
-use comfy_table::{Cell, Color, Table, Attribute};
+use comfy_table::{Attribute, Cell, Color, Table};
 use std::env;
 
 use crate::config::Config;
@@ -11,12 +11,8 @@ use crate::registry::RegistryManager;
 pub async fn execute() -> Result<()> {
     let cwd = env::current_dir().context("Failed to get current directory")?;
 
-    let lock = Lockfile::load(&cwd)?.ok_or_else(|| {
-        anyhow::anyhow!(
-            "No ion.lock found. Run {} first.",
-            "ion install".cyan()
-        )
-    })?;
+    let lock = Lockfile::load(&cwd)?
+        .ok_or_else(|| anyhow::anyhow!("No ion.lock found. Run {} first.", "ion install".cyan()))?;
 
     if lock.packages.is_empty() {
         println!("{}", "No dependencies installed.".dimmed());
@@ -26,10 +22,7 @@ pub async fn execute() -> Result<()> {
     println!("{}", "Checking for updates...".green().bold());
 
     let config = Config::load().unwrap_or_default();
-    let registry = RegistryManager::with_defaults(
-        &config.cache.directory,
-        config.github_token(),
-    )?;
+    let registry = RegistryManager::with_defaults(&config.cache.directory, config.github_token())?;
 
     let mut table = Table::new();
     table.set_header(vec![
@@ -64,15 +57,11 @@ pub async fn execute() -> Result<()> {
                     (latest, Cell::new("✓ Up to date").fg(Color::Green))
                 }
             }
-            Err(_) => {
-                (
-                    "?".to_string(),
-                    Cell::new("? Unknown").fg(Color::DarkGrey),
-                )
-            }
+            Err(_) => ("?".to_string(), Cell::new("? Unknown").fg(Color::DarkGrey)),
         };
 
-        let source_display = pkg.source
+        let source_display = pkg
+            .source
             .split('+')
             .next()
             .unwrap_or(&pkg.source)

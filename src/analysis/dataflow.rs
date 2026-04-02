@@ -82,12 +82,7 @@ fn line_one_based(idx: usize) -> u32 {
     (idx + 1) as u32
 }
 
-fn must_free_in_range(
-    file: &Path,
-    lines: &[&str],
-    start: usize,
-    end: usize,
-) -> Vec<Diagnostic> {
+fn must_free_in_range(file: &Path, lines: &[&str], start: usize, end: usize) -> Vec<Diagnostic> {
     let mut allocated: HashSet<(String, u32)> = HashSet::new();
     let mut freed: HashSet<String> = HashSet::new();
     for (idx, line) in lines.iter().enumerate().take(end + 1).skip(start) {
@@ -105,7 +100,9 @@ fn must_free_in_range(
         .map(|(v, line)| Diagnostic {
             rule: "memory/leak",
             severity: Severity::Warning,
-            message: format!("Allocated variable `{v}` may leak (no matching free in this function)"),
+            message: format!(
+                "Allocated variable `{v}` may leak (no matching free in this function)"
+            ),
             file: file.to_path_buf(),
             line: *line,
             column: 1,
@@ -174,7 +171,10 @@ fn simple_assignment_lhs(line: &str) -> Option<String> {
         return None;
     }
     let eq = t.find('=')?;
-    if t[..eq].contains("==") || t[..eq].contains("!=") || t[..eq].contains("<=") || t[..eq].contains(">=")
+    if t[..eq].contains("==")
+        || t[..eq].contains("!=")
+        || t[..eq].contains("<=")
+        || t[..eq].contains(">=")
     {
         return None;
     }

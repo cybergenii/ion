@@ -1,5 +1,7 @@
 # Ion Phase 3/4 Status
 
+Internal snapshot of lint (`ion check`) and editor (`ion lsp`) capabilities. **End users** should rely on [README.md](README.md) (features, roadmap, prerequisites). This file is for contributors tracing what shipped in which area.
+
 ## Implemented
 
 - Phase 3 linting framework: file discovery, diagnostics, reporting, rule execution, fixing, and watch mode.
@@ -22,7 +24,7 @@
   - Diagnostics include `code` and `code_description`; notes map to `related_information` when a file URL resolves
   - Quick-fix code actions filtered by request range and linked to diagnostics
   - Hover for diagnostic spans
-  - Go-to-definition (`textDocument/definition`): resolves symbol at cursor via libclang (`get_reference` → `get_definition`), same compile args as `ion check`
+  - Go-to-definition (`textDocument/definition`): resolves symbol at cursor via libclang (`get_reference` → `get_definition`), same compile args as `ion check`; LSP UTF-16 columns ↔ libclang 1-based UTF-8 byte columns within each line; definition ranges load other files from disk when needed
 
 ## Runtime behavior with and without libclang
 

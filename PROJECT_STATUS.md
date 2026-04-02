@@ -1,8 +1,10 @@
 # Ion Project Status Report
 
+> **Note:** This is a long-form development snapshot and may lag the repository. For **current** features, installation, and roadmap, start with [README.md](README.md). For lint/LSP detail, see [PHASE3_4_STATUS.md](PHASE3_4_STATUS.md).
+
 **Date:** April 1, 2026  
 **Version:** 0.3.0  
-**Status:** 🚧 Phase 3 In Progress - Linting Development Started
+**Status:** Active development (linting, LSP, and package manager features)
 
 ---
 

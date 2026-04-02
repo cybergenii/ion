@@ -1,73 +1,42 @@
 # Contributing to Ion
 
-Thank you for your interest in contributing to Ion! This document provides guidelines and instructions for contributing.
+This document describes how to contribute code, tests, and documentation. For **using** Ion on your own C++ projects, see the [README](README.md).
 
-## 🌟 Ways to Contribute
+## Ways to contribute
 
-### 1. Report Bugs
-- Check if the bug has already been reported in [Issues](https://github.com/cybergenii/ion/issues)
-- Use the bug report template
-- Include as much detail as possible (OS, Rust version, Ion version, steps to reproduce)
-- Attach relevant logs and error messages
+1. **Bugs** — Search [Issues](https://github.com/cybergenii/ion/issues) first, then open a new issue with OS, Rust version, Ion version, minimal steps to reproduce, and logs.
+2. **Features** — Open a discussion or issue describing the problem and proposed usage before large changes.
+3. **Pull requests** — Fork, branch from `main`, keep changes focused, add tests, and run the checks below before opening a PR.
+4. **Docs** — README, `CONTRIBUTING.md`, and inline help; small typo fixes are welcome.
 
-### 2. Suggest Features
-- Check if the feature has already been suggested
-- Use the feature request template
-- Clearly describe the problem your feature would solve
-- Provide examples of how the feature would be used
-
-### 3. Submit Pull Requests
-- Fork the repository
-- Create a feature branch (`git checkout -b feature/amazing-feature`)
-- Make your changes
-- Write tests for your changes
-- Run tests and ensure they pass
-- Commit with clear messages
-- Push to your fork
-- Open a Pull Request
-
-### 4. Improve Documentation
-- Fix typos or unclear explanations
-- Add examples
-- Improve README or API documentation
-- Write tutorials or blog posts
-
-### 5. Help Others
-- Answer questions in Issues or Discussions
-- Review Pull Requests
-- Share your Ion projects
-
-## 🛠️ Development Setup
+## Development setup
 
 ### Prerequisites
-- Rust 1.70 or later
-- Git
-- A C++ compiler (for testing generated projects)
 
-### Setup Steps
+| Tool | Purpose |
+|------|---------|
+| **Rust** (stable; same as [CI](.github/workflows/ci.yml)) | Build Ion |
+| **Git** | Version control |
+| **C++ toolchain + CMake** (optional but useful) | Manually exercise `ion new` / `ion build` against sample projects |
+
+### Clone and build
 
 ```bash
-# Clone your fork
 git clone https://github.com/your-username/ion
 cd ion
-
-# Add upstream remote
 git remote add upstream https://github.com/cybergenii/ion
 
-# Install dependencies
 cargo build
-
-# Run tests
 cargo test
-
-# Run clippy for linting
-cargo clippy --all-targets --all-features
-
-# Run formatter
+cargo clippy --all-targets --all-features -- -D warnings
 cargo fmt --all
 ```
 
-## 📋 Development Guidelines
+### Before opening a PR
+
+Run the same checks CI runs: `cargo test`, `cargo clippy -- -D warnings`, and `cargo fmt` (no diff). Update docs if your change affects user-visible behavior.
+
+## Development guidelines
 
 ### Code Style
 
@@ -195,53 +164,42 @@ pub enum Dependency {
 }
 ```
 
-## 🔍 Pull Request Process
+## Pull request process
 
-1. **Update Documentation**: Ensure README and docs reflect your changes
-2. **Update CHANGELOG**: Add your changes to CHANGELOG.md
-3. **Run Tests**: All tests must pass
-4. **Run Clippy**: No warnings allowed
-5. **Run Formatter**: Code must be formatted with `rustfmt`
-6. **Update Version**: Follow semver for version bumps
-7. **Get Reviews**: Wait for at least one maintainer approval
+1. **Documentation** — Update README or user-facing help if behavior changes.
+2. **CHANGELOG** — Add a user-visible entry under [CHANGELOG.md](CHANGELOG.md) when appropriate.
+3. **Tests** — `cargo test` must pass; add tests for new behavior.
+4. **Lint** — `cargo clippy -- -D warnings` (same as CI).
+5. **Format** — `cargo fmt` with no uncommitted formatting diffs.
+6. **Review** — Maintainer approval before merge.
 
-### PR Checklist
+### PR checklist
 
-- [ ] Tests added/updated
-- [ ] Documentation updated
-- [ ] CHANGELOG.md updated
-- [ ] All tests pass (`cargo test`)
-- [ ] No clippy warnings (`cargo clippy`)
-- [ ] Code formatted (`cargo fmt`)
-- [ ] Commit messages follow conventions
+- [ ] Tests added or updated where relevant
+- [ ] Docs / CHANGELOG updated if users are affected
+- [ ] `cargo test` and `cargo clippy -- -D warnings` pass
+- [ ] `cargo fmt` applied
 
-## 🏗️ Project Structure
-
-Understanding the codebase:
+## Project layout
 
 ```
 ion/
 ├── src/
-│   ├── main.rs           # CLI entry point, argument parsing
-│   ├── commands/         # Command implementations
-│   │   ├── mod.rs        # Module exports
-│   │   ├── new.rs        # 'ion new' command
-│   │   ├── init.rs       # 'ion init' command
-│   │   └── ...           # Other commands
-│   ├── manifest.rs       # ion.toml parsing and management
-│   ├── config.rs         # Configuration management
-│   ├── resolver/         # Dependency resolution (TODO)
-│   ├── registry/         # Package registry client (TODO)
-│   ├── builder/          # Build system (TODO)
-│   └── linter/           # Code analysis (TODO)
-├── tests/                # Integration tests
-├── .github/
-│   └── workflows/        # CI/CD workflows
-├── docs/                 # Documentation
-└── examples/             # Example projects
+│   ├── main.rs           # CLI entry
+│   ├── commands/         # ion subcommands
+│   ├── manifest.rs       # ion.toml
+│   ├── config.rs         # Global config
+│   ├── resolver/         # Dependency resolution
+│   ├── registry/         # Ion, GitHub, Conan, vcpkg, git, …
+│   ├── cmake/            # CMake generation
+│   ├── linter/           # ion check
+│   ├── analysis/         # Dataflow / CFG helpers
+│   └── lsp/              # ion lsp
+├── .github/workflows/    # CI (test, fmt, clippy)
+└── CHANGELOG.md
 ```
 
-## 🐛 Debugging Tips
+## Debugging tips
 
 ### Enable Debug Logging
 
@@ -289,30 +247,26 @@ VSCode launch.json:
 }
 ```
 
-## 📚 Resources
+## Resources
 
 - [Rust Book](https://doc.rust-lang.org/book/)
 - [Cargo Book](https://doc.rust-lang.org/cargo/)
-- [clap Documentation](https://docs.rs/clap/)
-- [tokio Documentation](https://docs.rs/tokio/)
-- [Ion Roadmap](README.md#roadmap)
+- [clap](https://docs.rs/clap/), [tokio](https://docs.rs/tokio/) (where used)
+- [Roadmap](README.md#roadmap)
 
-## ❓ Questions?
+## Questions
 
-- Open a [Discussion](https://github.com/cybergenii/ion/discussions)
-- Join our [Discord/Slack] (coming soon)
-- Email: your.email@example.com
+- [GitHub Discussions](https://github.com/cybergenii/ion/discussions)
+- [Issues](https://github.com/cybergenii/ion/issues)
+- Maintainer: [cybersgenii@gmail.com](mailto:cybersgenii@gmail.com)
 
-## 📜 Code of Conduct
+## Code of conduct
 
-Be respectful, inclusive, and professional. We're all here to build something great together.
+Be respectful and inclusive. Disagreement should focus on technical merit.
 
-## 🎉 Recognition
+## Recognition
 
-Contributors will be:
-- Listed in CONTRIBUTORS.md
-- Mentioned in release notes
-- Given credit in documentation
+Contributors are listed in [CONTRIBUTORS.md](CONTRIBUTORS.md) and release notes where applicable.
 
-Thank you for contributing to Ion! 🚀
+Thank you for contributing.
 

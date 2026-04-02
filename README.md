@@ -1,39 +1,53 @@
-# Ion ⚡
+# Ion
 
-**A modern, fast, and user-friendly C++ package manager and linter written in Rust**
+**C++ package manager, build orchestration, and linter — implemented in Rust.**
 
-<!-- [![Build Status](https://github.com/cybergenii/ion/workflows/CI/badge.svg)](https://github.com/cybergenii/ion/actions) -->
+[![CI](https://github.com/cybergenii/ion/actions/workflows/ci.yml/badge.svg)](https://github.com/cybergenii/ion/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.3.0-green.svg)](https://github.com/cybergenii/ion)
 
-## 🎯 Vision
+## Overview
 
-Ion aims to bring the ease of use found in modern package managers (like Cargo, npm, pip) to the C++ ecosystem. No more wrestling with CMake configurations, dependency hell, or manual library management. With Ion, you can create a full C++ project, import dependencies, build/run/test it, and lint it from one CLI.
+Ion is one CLI for both **packaging** and **quality**: you describe the project in `ion.toml`, run `ion install` to resolve dependencies (Ion registry, GitHub, ConanCenter, vcpkg, git, or paths), then `ion build`, `ion run`, and `ion test`. Use `ion check` for static analysis and `ion lsp` to drive diagnostics, fixes, and go-to-definition in an editor.
 
-## ✨ Features
+- **Always available without libclang:** tree-sitter–based checks, textual dataflow, and several heuristics.
+- **With libclang installed:** additional semantic rules and richer LSP behavior (including go-to-definition).
 
-### Available Now (v0.3.0) ✅
-- **End-to-End Workflow**: Scaffold, depend, build, run, test, clean, and lint a full C++ project from one tool
-- **Project Scaffolding**: Create new C++ projects with best practices built-in
-- **Multiple Templates**: Executable, library, or header-only project types
-- **Modern Manifest**: Simple TOML configuration (`ion.toml`)
-- **CMake Integration**: Automatic CMakeLists.txt generation
-- **Dependency Management**: Add, install, remove, update, tree, and outdated commands
-- **Multi-Source Registry Support**: Ion, GitHub, Conan, vcpkg, git, and local path dependencies
-- **Lockfile + Cache**: Deterministic `ion.lock` resolution and cached package extraction
-- **Build Pipeline Commands**: `ion build`, `ion run`, `ion test`, `ion clean`
-- **Linting Commands**: `ion check`, `ion check --fix`, `ion check --watch`, `ion check --list-rules`, smart-pointer heuristics (`memory/smart-get`, `memory/raw-from-smart`, …)
-- **Cross-Platform**: Works on Linux, macOS, and Windows
-- **Beautiful CLI**: Colored output with helpful error messages
+Day-to-day commands most users run: `ion add`, `ion install`, `ion build`, `ion check`.
 
-### In Progress / Coming Soon 🚧
-- **Quality Focus**: Existing workflow is complete; current work is on deeper analysis precision and UX polish
-- **Lint Rule Precision**: Reduce false positives with deeper semantic analysis
-- **Advanced Dataflow**: Better path-sensitive leak/use-after-free reasoning
-- **LSP Maturity**: Richer hover docs and stronger quick-fix workflows
-- **Rule Coverage**: Expand modern C++ and resource-safety checks
+## Prerequisites
 
-## 🚀 Quick Start
+| What you are doing | Requirements |
+|--------------------|--------------|
+| **Using Ion** to build a C++ project | A C++ compiler and **CMake** on your PATH. The [installer](#installation) can bootstrap common tools on supported platforms via `ION_INSTALL_DEPS` (see comments in that section). |
+| **Full lint + LSP semantics** | **libclang** (system package or LLVM install) so `ion check` and `ion lsp` can use the same AST pipeline as Conan/vcpkg-style C++ code. |
+| **Hacking on Ion itself** | **Rust** (stable) and **Cargo**; see [Contributing](CONTRIBUTING.md). |
+
+## Vision
+
+Ion brings a Cargo-style workflow to C++: one manifest, one lockfile, one CLI for scaffolding, dependencies, builds, tests, and static analysis. It targets teams that want less CMake and scripting friction without giving up interoperability with existing ecosystems.
+
+## Features
+
+### Shipped in v0.3.x
+- **End-to-end workflow**: Scaffold, resolve dependencies, build, run, test, clean, and lint from a single CLI
+- **Project Scaffolding**: Executable, library, or header-only templates with sensible defaults
+- **Manifest**: `ion.toml` (TOML) for package metadata and dependencies
+- **CMake**: Generated `CMakeLists.txt` wired to resolved dependencies
+- **Dependencies**: `add`, `install`, `remove`, `update`, `tree`, `outdated`
+- **Multi-registry resolution**: Ion registry, GitHub releases, **ConanCenter**, **vcpkg** ports, git URLs, and local paths (see [Dependency sources](#dependency-sources))
+- **Lockfile and cache**: `ion.lock` for reproducible resolution; cached downloads and extraction
+- **Build**: `ion build`, `ion run`, `ion test`, `ion clean`
+- **Linting**: `ion check` with `--fix`, `--watch`, `--list-rules`, `--rule`, JSON/SARIF output; semantic rules when libclang is available; `ion lsp` for editor integration (diagnostics, code actions, go-to-definition where supported)
+- **Cross-platform**: Linux, macOS, and Windows
+
+### Roadmap
+- Deeper semantic analysis and fewer false positives in lint rules
+- Stronger path-sensitive dataflow (leaks, use-after-free)
+- LSP: richer hover and quick-fix coverage
+- Broader rule coverage for modern C++ and resource safety
+
+## Quick Start
 
 ### Installation
 
@@ -85,79 +99,74 @@ ion init
 # This creates ion.toml and sets up the project structure
 ```
 
-## 📖 Usage
+## Usage
 
-### Project Management
+### Project management
 
 ```bash
-# Create new project
 ion new <project-name> [--std 20] [--template executable|library|header-only]
-
-# Initialize existing directory
 ion init [--std 20]
 ```
 
-### Dependency Management
+### Dependency management
+
+Core commands:
 
 ```bash
-# Add a dependency
-ion add fmt
-
-# Add a development dependency
-ion add --dev catch2
-
-# Install all dependencies
-ion install
-
-# Remove a dependency
-ion remove fmt
-
-# Update dependencies
+ion add <spec>              # Add a dependency (see formats below)
+ion add --dev <spec>        # Dev dependency
+ion install                 # Download and resolve per ion.toml / ion.lock
+ion remove <name>
 ion update
-
-# Show outdated packages
 ion outdated
-
-# Display dependency tree
 ion tree
 ```
 
-### Build & Run
+#### Dependency sources
+
+Ion resolves packages from several backends. Use a **prefix** on `ion add`, or set the equivalent fields in `ion.toml`.
+
+| Source | `ion add` example | `ion.toml` (inline table) |
+|--------|-------------------|---------------------------|
+| **Ion registry** | `ion add fmt` or `ion add fmt@10.2.1` | `fmt = "10.2.1"` |
+| **GitHub** | `ion add github:fmtlib/fmt@10.2.1` | `fmt = { git = "https://github.com/fmtlib/fmt", tag = "10.2.1" }` |
+| **ConanCenter** | `ion add conan:fmt/10.2.1@` | `fmt = { conan = "fmt/10.2.1@" }` |
+| **vcpkg** | `ion add vcpkg:fmt` | `fmt = { vcpkg = "fmt" }` |
+| **Git** | `ion add git:https://example.com/lib.git@tag` | `mylib = { git = "...", tag = "..." }` |
+
+**ConanCenter** references follow Conan’s usual `name/version@user/channel` style; for center packages the trailing `@` is common (e.g. `fmt/10.2.1@`). Ion talks to ConanCenter over HTTPS; you do not need the Conan CLI installed for this resolution path.
+
+**vcpkg** dependencies use the **port name** (e.g. `fmt`, `openssl`). Ion uses the public vcpkg port index and baseline metadata to resolve versions and source archives; the classic `vcpkg` tool is not required for declaring the dependency in Ion.
+
+After changing dependencies, run:
 
 ```bash
-# Build the project
+ion install
+```
+
+Registry URLs, mirrors, and Conan/vcpkg toggles are documented under [Global configuration](#global-configuration).
+
+### Build and run
+
+```bash
 ion build [--build-type debug|release]
-
-# Build and run
 ion run [-- args]
-
-# Run tests
 ion test
-
-# Clean build artifacts
 ion clean
 ```
 
-### Code Quality
+### Code quality
 
 ```bash
-# Check code for issues
 ion check
-
-# List available lint rule IDs
 ion check --list-rules
-
-# Run only selected rules (comma-separated)
 ion check --rule modern/nullptr,memory/leak
-
-# Check with auto-fix
 ion check --fix
-
-# Watch mode for real-time feedback
 ion check --watch
+ion lsp    # Language Server Protocol for editors
 ```
 
-## 📝 Project Structure
+## Project structure
 
 When you create a new project with Ion, you get:
 
@@ -173,11 +182,11 @@ my-project/
 └── README.md         # Project documentation
 ```
 
-## ⚙️ Configuration
+## Configuration
 
-### ion.toml
+### `ion.toml`
 
-The `ion.toml` file is the heart of your Ion project:
+Project manifest: metadata, dependencies, and build hints.
 
 ```toml
 [package]
@@ -185,18 +194,22 @@ name = "my-project"
 version = "0.1.0"
 cpp-standard = "20"
 description = "A modern C++ application"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Your Name <you@example.com>"]
 license = "MIT"
-repository = "https://github.com/cybergenii/my-project"
+repository = "https://github.com/you/my-project"
 
 [dependencies]
+# Ion registry (version range or exact)
 fmt = "10.1.1"
 spdlog = "^1.12"
 boost = { version = "1.83.0", features = ["system", "filesystem"] }
 
+# ConanCenter and vcpkg (optional; use one source per package)
+# logging = { conan = "spdlog/1.13.0@" }
+# zlib = { vcpkg = "zlib" }
+
 [dev-dependencies]
 catch2 = "3.4.0"
-benchmark = "1.8.0"
 
 [build]
 compiler-flags = ["-Wall", "-Wextra", "-Wpedantic"]
@@ -204,14 +217,22 @@ linker-flags = []
 features = ["threading"]
 ```
 
-### Global Configuration
+### Global configuration
 
-Create `~/.config/ion/config.toml` for global settings:
+`~/.config/ion/config.toml`:
 
 ```toml
 [registry]
+default = "ion"
 url = "https://registry.ion-cpp.dev"
 mirrors = ["https://mirror1.example.com", "https://mirror2.example.com"]
+
+[registry.conan]
+enabled = true
+url = "https://conan.io/center"
+
+[registry.vcpkg]
+enabled = true
 
 [cache]
 directory = "~/.cache/ion"
@@ -222,15 +243,15 @@ parallel-jobs = 8
 ccache = true
 ```
 
-## 🗺️ Roadmap
+## Roadmap
 
-### Phase 1: Foundation ✅
+### Phase 1: Foundation
 - [x] Project scaffolding (`new`, `init`)
 - [x] Manifest parsing (`ion.toml`)
 - [x] CMake generation
 - [x] CLI interface
 
-### Phase 2: Package Manager ✅
+### Phase 2: Package manager
 - [x] Lockfile generation and freshness checks
 - [x] Multi-source registry adapters
 - [x] Package download/caching and extraction
@@ -238,7 +259,7 @@ ccache = true
 - [x] Build/run/test/clean command integration
 - [x] CMake dependency wiring support
 
-### Phase 3: Linting 🚧 (In Progress)
+### Phase 3: Linting
 - [x] `ion check` command
 - [x] `ion check --fix`
 - [x] `ion check --watch`
@@ -250,7 +271,7 @@ ccache = true
 - [x] Function-scoped textual dataflow for `memory/leak` and `memory/use-after-free` (assignment clears freed state)
 - [ ] Full path-sensitive / interprocedural analysis (CFG-backed, cross-function summaries)
 
-### Phase 4: Advanced Features 🚧 (In Progress)
+### Phase 4: Advanced features
 - [x] Initial LSP server plumbing (`ion lsp`)
 - [x] Diagnostic conversion pipeline for editor integration
 - [x] Smart-pointer heuristics (`memory/smart-get`, `memory/raw-from-smart`, `memory/move-after-use`, `memory/shared-cycle-hint`)
@@ -264,17 +285,16 @@ ccache = true
 - [ ] Enterprise features
 - [ ] v1.0 launch
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Here's how you can help:
+Contributions are welcome.
 
-1. **Report Bugs**: Open an issue with a clear description
-2. **Suggest Features**: Share your ideas for improvements
-3. **Submit PRs**: Fix bugs or implement features
-4. **Write Documentation**: Help improve our docs
-5. **Spread the Word**: Star the repo, share with friends
+1. **Issues**: Report bugs with reproduction steps and environment details.
+2. **Features**: Open a discussion or issue before large changes.
+3. **Pull requests**: Keep changes focused; match existing style and tests.
+4. **Documentation**: Improvements to this README and inline help are appreciated.
 
-### Development Setup
+### Development setup
 
 ```bash
 # Clone the repository
@@ -295,63 +315,39 @@ cargo build --release
 ./target/release/ion --help
 ```
 
-### Running Tests
+### Tests
 
 ```bash
-# Run all tests
 cargo test
-
-# Run specific test
 cargo test test_manifest_creation
-
-# Run with output
 cargo test -- --nocapture
 ```
 
-## 📊 Comparison with Other Tools
+## Comparison
 
-| Feature | Ion | Conan | vcpkg | CMake + FetchContent |
-|---------|-----|-------|-------|---------------------|
-| **Easy to Use** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
-| **Speed** | ⚡ Blazing Fast | 🐌 Slow | 🐌 Slow | 🚗 Moderate |
-| **Dependency Resolution** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
-| **Built-in Linter** | ✅ Yes | ❌ No | ❌ No | ❌ No |
-| **Modern CLI** | ✅ Yes | ⚠️ Complex | ⚠️ Complex | ❌ No |
-| **Cross-Platform** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
+Ion is not a drop-in replacement for every Conan or vcpkg workflow; it orchestrates downloads and CMake integration from multiple ecosystems. Rough positioning:
 
-## 💡 Why Ion?
+| Capability | Ion | Conan | vcpkg | CMake `FetchContent` |
+|------------|-----|-------|-------|----------------------|
+| Single manifest + lockfile for the project | Yes | Yes | Yes | Partial |
+| Built-in static analysis / linter | Yes | No | No | No |
+| Native integration with ConanCenter / vcpkg ports | Via adapters | Native | Native | Manual |
+| Primary focus | CLI + CMake + lint | C/C++ packages & binary artifacts | Ports + toolchain integration | CMake-centric vendoring |
 
-### Problem: C++ Dependency Management is Painful
+Use Ion when you want one tool for dependency resolution, generated CMake, and optional `ion check` / `ion lsp` in the same repo.
 
-```bash
-# The old way (manual, error-prone)
-1. Search for library documentation
-2. Download source code or binaries
-3. Configure build system manually
-4. Handle platform-specific differences
-5. Manage version conflicts manually
-6. Update each dependency individually
-```
+## Why Ion?
 
-### Solution: Ion Makes it Simple
+C++ projects often combine manual downloads, ad hoc CMake, and separate analysis tools. Ion standardizes:
 
-```bash
-# The Ion way (simple, fast)
-ion add fmt spdlog boost
-ion build
-# Done! ✨
-```
+- Declaring dependencies (including **ConanCenter** and **vcpkg** names) in `ion.toml`
+- Resolving and caching artifacts with `ion install`
+- Building and testing with `ion build` / `ion test`
+- Catching issues early with `ion check` and editor integration via `ion lsp`
 
-### Why Choose Ion?
+The CLI is implemented in Rust; the project is MIT-licensed.
 
-1. **Blazing Fast**: Written in Rust for maximum performance
-2. **Modern UX**: Beautiful CLI with helpful error messages
-3. **Smart**: Advanced dependency resolution prevents conflicts
-4. **Safe**: Built-in linter catches memory bugs early
-5. **Complete**: Package manager + build tool + linter in one
-6. **Open**: MIT licensed, community-driven
-
-## 🏗️ Architecture
+## Architecture
 
 Ion is built with a modular architecture:
 
@@ -375,24 +371,20 @@ ion/
 └── tests/                # Integration tests
 ```
 
-## 📜 License
+## License
 
-Ion is licensed under the [MIT License](LICENSE).
+Distributed under the [MIT License](LICENSE).
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- **Rust Community**: For the amazing tools and ecosystem
-- **Cargo**: Inspiration for the user experience
-- **Conan & vcpkg**: Pioneering C++ package management
-- **clang-tidy**: Inspiration for code analysis
+Rust and Cargo; Conan and vcpkg for prior art in C++ packaging; clang and the LLVM project for tooling ideas.
 
-## 📞 Contact & Support
+## Links
 
-- **Issues**: [GitHub Issues](https://github.com/cybergenii/ion/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/cybergenii/ion/discussions)
-- **Email**: cybersgenii@gmail.com
-- **Twitter**: [@cybergenii](https://twitter.com/cyber_genii)
+- [Issues](https://github.com/cybergenii/ion/issues)
+- [Discussions](https://github.com/cybergenii/ion/discussions)
+- [Documentation](https://ion.cybergenii.com/docs)
+- [Examples](https://github.com/cybergenii/ion-examples)
+- [Contributing](CONTRIBUTING.md)
 
----
-
-**Built with ❤️ and Rust** | [Documentation](https://ion.cybergenii.com/docs) | [Examples](https://github.com/cybergenii/ion-examples) | [Contributing](CONTRIBUTING.md)
+Maintainer contact: [cybersgenii@gmail.com](mailto:cybersgenii@gmail.com) · [@cyber_genii](https://twitter.com/cyber_genii)
